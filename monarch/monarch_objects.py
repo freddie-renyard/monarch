@@ -16,9 +16,6 @@ class PhaseSpace:
         self.ode_system = ode_system
         self.dimensions = len(ode_system)
 
-        # Compute the step used when compiling the phase space.
-        self.step = float(max_limit) / resolution
-
         self.resolution = resolution
         self.space_shape = [resolution] * self.dimensions
     
@@ -33,12 +30,12 @@ class PhaseSpace:
         self.phase_space = np.zeros(phase_space_shape)
         
         # Create an array of zeroes to hold the addresses when compiling.
-        ind_arr = [0] * self.dimensions
 
         for dim_i, delta_eqn in enumerate(self.ode_system):
             # Extract each equation and compile the deltas for that direction
             # into a tensor.
             break_next = False
+            ind_arr = [0] * self.dimensions
             while True:
                 
                 # Get the current entry in phase space.
@@ -48,7 +45,7 @@ class PhaseSpace:
                 dim_args = []
                 for i in ind_arr:
                     dim_args.append(self.linspace[i])
-
+                
                 self.phase_space[address] = delta_eqn(*dim_args)
                 
                 ind_arr = self.increment_addr(ind_arr)
