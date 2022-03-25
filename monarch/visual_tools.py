@@ -34,3 +34,42 @@ def plot_2d_phase_space(phase_object, name=""):
     
     plt.axis('off')
     plt.show()
+
+def plot_3d_phase_space(phase_object, name=""):
+    """Plots a 3D quiver plot which corresponds to the phase space
+    information in the passed PhaseSpace object.
+    """
+
+    if phase_object.dimensions != 3:
+        raise ValueError("Dimensionality of the input PhaseSpace Object is not 3.")
+
+    ax = plt.figure().add_subplot(projection='3d')
+
+    # Make the grid
+    x, y, z = np.meshgrid(np.arange(0, phase_object.resolution),
+                        np.arange(0, phase_object.resolution),
+                        np.arange(0, phase_object.resolution))
+
+    # Determine plot name
+    plot_name = "3D phase plot"
+    if name != "":
+        plot_name += " of " + name
+
+    plt.title(plot_name)
+    
+    skip = phase_object.resolution // 16
+    ax.quiver(
+        x[::skip,::skip,::skip], 
+        y[::skip,::skip,::skip], 
+        z[::skip,::skip,::skip], 
+
+        phase_object.phase_space[0,::skip,::skip,::skip], 
+        phase_object.phase_space[1,::skip,::skip,::skip], 
+        phase_object.phase_space[2,::skip,::skip,::skip], 
+
+        length=0.7,
+        color="r",
+        normalize=True
+    )
+
+    plt.show()
