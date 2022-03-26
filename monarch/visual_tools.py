@@ -78,6 +78,22 @@ def plot_3d_phase_space(phase_object, name=""):
 
     plt.show()
 
+def plot_2d_components(phase_object):
+    """Plots the dimension components of the velocity vectors of a compiled
+    phase space.
+    """
+
+    x_deltas = np.rot90(phase_object.phase_space[:, :, 0])
+    y_deltas = np.rot90(phase_object.phase_space[:, :, 1])
+
+    plt.subplot(1,2,1) 
+    plt.title("X components of input vector")
+    plt.imshow(x_deltas)
+    plt.subplot(1,2,2)
+    plt.title("Y components of input vector")
+    plt.imshow(y_deltas)
+    plt.show()
+
 def plot_histogram(phase_object, bins=100):
     """Plots a histogram of all the values of all the vectors in phase space.
     Used for assessing full dynamic range of a compiled system.

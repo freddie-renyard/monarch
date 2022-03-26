@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 from monarch.monarch_objects import PhaseSpace
-from monarch.visual_tools import plot_2d_phase_space
+from monarch.visual_tools import plot_2d_components
 import numpy as np
 
 # A model of a calcium-induced calcium release model in cells, which
@@ -45,3 +45,5 @@ phase_space = PhaseSpace(
     max_limit = 32,
     four_quadrant = False
 )
+
+plot_2d_components(phase_space)
