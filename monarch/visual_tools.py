@@ -1,6 +1,7 @@
 from multiprocessing.sharedctypes import Value
 import numpy as np
 from matplotlib import pyplot as plt
+from math import log10
 
 def plot_2d_phase_space(phase_object, name=""):
     """Plots a 2D phase diagram for a given PhaseSpace object and shows
@@ -72,4 +73,25 @@ def plot_3d_phase_space(phase_object, name=""):
         normalize=True
     )
 
+    plt.show()
+
+def plot_histogram(phase_object, bins=100):
+    """Plots a histogram of all the values of all the vectors in phase space.
+    Used for assessing full dynamic range of a compiled system.
+    """
+
+    flattened_space = phase_object.phase_space.flatten()
+
+    histogram, bin_edges = np.histogram(flattened_space, bins=bins)
+
+    # Compute the dynamic range of all the values.
+    max_val = np.abs(flattened_space).max()
+    min_val = np.abs(flattened_space).min()
+    dyn_range = 20 * log10(max_val / min_val)
+
+    # Ensure the bar width is equal.
+    bar_width = bin_edges[1]-bin_edges[0] 
+
+    plt.bar(bin_edges[:-1], histogram, width=bar_width, align='edge')
+    plt.title('Histogram of Phase Space Values. Dynamic range: {}dB'.format(int(dyn_range)))
     plt.show()

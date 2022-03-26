@@ -1,11 +1,8 @@
 from lib2to3.pygram import python_grammar_no_print_statement
 from tkinter import Y
 from monarch.monarch_objects import PhaseSpace
-from monarch.visual_tools import plot_2d_phase_space
+from monarch.visual_tools import plot_2d_phase_space, plot_histogram
 from math import cos, sin
-from matplotlib import pyplot as plt
-
-import numpy as np
 
 # Define a simple ODE with sine and cosine functions.
 ode = (
@@ -20,4 +17,5 @@ phase_space = PhaseSpace(
     four_quadrant = True
 )
 
+plot_histogram(phase_space)
 plot_2d_phase_space(phase_space, "a periodic function")
