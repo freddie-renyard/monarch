@@ -85,8 +85,13 @@ def plot_histogram(phase_object, bins=100):
     histogram, bin_edges = np.histogram(flattened_space, bins=bins)
 
     # Compute the dynamic range of all the values.
-    max_val = np.abs(flattened_space).max()
-    min_val = np.abs(flattened_space).min()
+    abs_vals = np.abs(flattened_space)
+    max_val = abs_vals.max()
+
+    # Ensure that zero isn't chosen as a minimum value to prevent division by zero.
+    abs_vals = abs_vals[abs_vals != 0.0]
+    min_val = abs_vals.min()
+
     dyn_range = 20 * log10(max_val / min_val)
 
     # Ensure the bar width is equal.

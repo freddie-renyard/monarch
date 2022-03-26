@@ -3,7 +3,7 @@ from unittest import result
 
 from matplotlib.pyplot import plot
 from monarch.monarch_objects import PhaseSpace
-from monarch.visual_tools import plot_2d_phase_space, plot_3d_phase_space
+from monarch.visual_tools import plot_2d_phase_space, plot_3d_phase_space, plot_histogram
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -26,4 +26,5 @@ phase_space = PhaseSpace(
     four_quadrant = True
 )
 
+plot_histogram(phase_space)
 plot_3d_phase_space(phase_space, name='Lorentz attractor')
