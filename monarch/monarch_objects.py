@@ -26,7 +26,7 @@ class PhaseSpace:
             self.linspace = np.linspace(0, max_limit, num=resolution)
 
         # Create the output phase space.
-        phase_space_shape = [self.dimensions] + self.space_shape
+        phase_space_shape = self.space_shape + [self.dimensions]
         self.phase_space = np.zeros(phase_space_shape)
         
         # Create an array of zeroes to hold the addresses when compiling.
@@ -39,7 +39,7 @@ class PhaseSpace:
             while True:
                 
                 # Get the current entry in phase space.
-                address = tuple([dim_i] + ind_arr)
+                address = tuple(ind_arr + [dim_i])
                 
                 # Get the real values for the current address from the linspace.
                 dim_args = []

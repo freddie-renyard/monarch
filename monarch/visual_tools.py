@@ -1,9 +1,8 @@
-from multiprocessing.sharedctypes import Value
 import numpy as np
 from matplotlib import pyplot as plt
 from math import log10
 
-def plot_2d_phase_space(phase_object, name=""):
+def plot_2d_phase_space(phase_object, name="", show_arrows=True):
     """Plots a 2D phase diagram for a given PhaseSpace object and shows
     the output as a quiver plot superimposed on a image plot of the total
     gradient vector magnitude.
@@ -13,7 +12,9 @@ def plot_2d_phase_space(phase_object, name=""):
         raise ValueError("Dimensionality of the input PhaseSpace Object is not 2.")
 
     # Compute the magnitude of each vector.
-    magnitudes = np.sqrt((phase_object.phase_space[0, :, :]**2 +  phase_object.phase_space[1, :, :]**2))
+    x_deltas = np.rot90(phase_object.phase_space[:, :, 0])
+    y_deltas = np.rot90(phase_object.phase_space[:, :, 1])
+    magnitudes = np.sqrt((x_deltas**2 + y_deltas**2))
 
     skip = phase_object.resolution // 32
     xgrid = range(0,phase_object.resolution)
@@ -27,11 +28,13 @@ def plot_2d_phase_space(phase_object, name=""):
 
     plt.title(plot_name)
     plt.imshow(magnitudes)
-    plt.quiver(x[::skip,::skip], y[::skip,::skip],
-            phase_object.phase_space[1, ::skip,::skip],
-            -phase_object.phase_space[0, ::skip,::skip],
-            color='r',
-            scale=100)
+    if show_arrows:
+        plt.quiver(x[::skip,::skip], y[::skip,::skip],
+                np.rot90(phase_object.phase_space[::skip,::skip, 0]),
+                np.rot90(phase_object.phase_space[::skip,::skip, 1]),
+                color='r',
+                scale=100
+        )
     
     plt.axis('off')
     plt.show()
