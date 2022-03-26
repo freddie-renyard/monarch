@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import colors
 from math import log10
 
 def plot_2d_phase_space(phase_object, name="", show_arrows=True):
@@ -86,12 +87,29 @@ def plot_2d_components(phase_object):
     x_deltas = np.rot90(phase_object.phase_space[:, :, 0])
     y_deltas = np.rot90(phase_object.phase_space[:, :, 1])
 
+    # Compute absolute maximum value of vector components
+    x_max = np.abs(x_deltas).max()
+    y_max = np.abs(y_deltas).max()
+    
+    # Normalise the components of the vectors.
+    x_deltas = x_deltas / x_max
+    y_deltas = y_deltas / y_max
+
+    # Divide by a further factor of 2 to ensure the full 
+    # range of the components of the vectors is 1.
+    x_deltas = x_deltas / 2.0
+    y_deltas = y_deltas / 2.0
+
+    # Offset the components of the vectors.
+    x_deltas += 0.5
+    y_deltas += 0.5
+
     plt.subplot(1,2,1) 
     plt.title("X components of input vector")
-    plt.imshow(x_deltas)
+    plt.imshow(x_deltas, cmap='seismic')
     plt.subplot(1,2,2)
     plt.title("Y components of input vector")
-    plt.imshow(y_deltas)
+    plt.imshow(y_deltas, cmap='seismic')
     plt.show()
 
 def plot_histogram(phase_object, bins=100):
