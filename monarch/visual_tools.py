@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import colors
-from math import log10
+from math import log10, log2
 
 def plot_2d_phase_space(phase_object, name="", show_arrows=True):
     """Plots a 2D phase diagram for a given PhaseSpace object and shows
@@ -34,7 +34,7 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True):
                 np.rot90(phase_object.phase_space[::skip,::skip, 0]),
                 np.rot90(phase_object.phase_space[::skip,::skip, 1]),
                 color='r',
-                scale=100
+                scale=1
         )
     
     plt.axis('off')
@@ -129,11 +129,12 @@ def plot_histogram(phase_object, bins=100):
     abs_vals = abs_vals[abs_vals != 0.0]
     min_val = abs_vals.min()
 
-    dyn_range = 20 * log10(max_val / min_val)
+    print(max_val, min_val)
+    dyn_range = log2(max_val / min_val)
 
     # Ensure the bar width is equal.
     bar_width = bin_edges[1]-bin_edges[0] 
 
     plt.bar(bin_edges[:-1], histogram, width=bar_width, align='edge')
-    plt.title('Histogram of Phase Space Values. Dynamic range: {}dB'.format(int(dyn_range)))
+    plt.title('Histogram of Phase Space Values. Dynamic range: {} bits'.format(int(dyn_range)))
     plt.show()

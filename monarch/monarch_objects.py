@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 
 class PhaseSpace:
 
-    def __init__(self, ode_system, resolution, max_limit, four_quadrant=True):
+    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True):
         """ A class which contains the compiled phase space data, along with methods 
         for compiling the equations passed to this class on initialisation.
         """
@@ -57,6 +57,10 @@ class PhaseSpace:
                 # calculated.
                 if sum(ind_arr) == (self.resolution-1)*self.dimensions:
                     break_next = True
+        
+        # Mutliply all the values in the phase space by the timestep
+        # to make evaluation of the ODE with Euler's method faster in hardware.
+        self.phase_space *= dt
                 
     def increment_addr(self, index_lst):
         

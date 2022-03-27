@@ -12,6 +12,7 @@ phase_space = PhaseSpace(
     ode_system = ode,
     resolution = 64,
     max_limit = 4,
+    dt = 0.001,
     four_quadrant = True
 )
 
