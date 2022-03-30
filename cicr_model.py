@@ -1,7 +1,6 @@
 from matplotlib import pyplot as plt
 from monarch.monarch_objects import PhaseSpace
 from monarch.visual_tools import plot_2d_components, plot_2d_phase_space, plot_histogram
-import numpy as np
 
 # A model of a calcium-induced calcium release model in cells, which
 # accurately models calcium ion oscillations in the cytosol of cells.

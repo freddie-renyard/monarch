@@ -34,7 +34,7 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True):
                 np.rot90(phase_object.phase_space[::skip,::skip, 0]),
                 np.rot90(phase_object.phase_space[::skip,::skip, 1]),
                 color='r',
-                scale=1
+                scale=7
         )
     
     plt.axis('off')
