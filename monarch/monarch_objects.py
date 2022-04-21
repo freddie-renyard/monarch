@@ -1,9 +1,6 @@
-from operator import index
-from re import I
-from unittest import result
 import numpy as np
-
-from matplotlib import pyplot as plt
+import json 
+from bitstring import BitArray
 
 class PhaseSpace:
 
@@ -61,6 +58,8 @@ class PhaseSpace:
         # Mutliply all the values in the phase space by the timestep
         # to make evaluation of the ODE with Euler's method faster in hardware.
         self.phase_space *= dt
+
+        self.compile_to_binary()
                 
     def increment_addr(self, index_lst):
         
@@ -72,3 +71,36 @@ class PhaseSpace:
                 break
 
         return index_lst
+
+    def compile_to_binary(self):
+        """Compile the phase space to a binary representation.
+        """
+
+        flat_bin_strs = []
+
+        # Get the compiler parameters
+        with open("monarch/hardware_params.json") as file:
+            comp_params = json.load(file)
+
+        scale_factor = 2 ** comp_params["delta_radix"]
+
+        # Extract the vector components for each dimension of phase space.
+        for vector_comps in np.moveaxis(self.phase_space, -1, 0):
+
+            flat_vectors = vector_comps.flatten()
+            
+            flat_vectors *= scale_factor
+            flat_vectors = flat_vectors.astype(int)
+
+            bin_vals = []
+            for vector_component in flat_vectors:
+                binary = str(BitArray(
+                    int=vector_component, 
+                    length=comp_params["delta_depth"]
+                    ).bin
+                )
+                bin_vals.append(binary)
+            
+            print(bin_vals)
+
+        return flat_bin_strs
