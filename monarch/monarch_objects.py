@@ -5,10 +5,11 @@ from bitstring import BitArray
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
+import math
 
 class PhaseSpace:
 
-    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True):
+    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, verbose=False, report_mem_usage=True):
         """ A class which contains the compiled phase space data, along with methods 
         for compiling the equations passed to this class on initialisation.
         """
@@ -63,7 +64,32 @@ class PhaseSpace:
         # to make evaluation of the ODE with Euler's method faster in hardware.
         self.phase_space *= dt
 
-        self.k_means_split(32, plot_verbose=True)
+        # Compile the k-means pointer space and the associated means.
+        k = 2 ** 5
+        self.pointer_space, self.pointer_means = self.k_means_split(k, plot_verbose=False)
+
+        # Compile and display a recontructed phase space from the 
+        # k-means data, and compute the RMSE.
+        if verbose:
+            reconstruct_space = []
+            for ptr in self.pointer_space.flatten():
+                reconstruct_space.append(self.pointer_means[ptr])
+            
+            space_shape = np.shape(self.pointer_space) + (self.dimensions,)
+            reconstruct_space = np.reshape(reconstruct_space, space_shape)
+        
+            # Compute the RMSE between the representations.
+            difs = reconstruct_space.flatten() - self.phase_space.flatten()
+            squares = difs ** 2
+            rmse = math.sqrt(np.sum(squares) / len(difs))
+            print("RMSE for the k-means representation: {:.5f}".format(rmse))
+
+            plt.subplot(1,2,1)
+            plt.imshow(reconstruct_space[:,:,1])
+            plt.subplot(1,2,2)
+            plt.imshow(self.phase_space[:,:,1])
+
+            plt.show()
 
         # Compile to binary
         self.bin_space = self.compile_to_binary()
@@ -138,18 +164,16 @@ class PhaseSpace:
         vectors = np.reshape(self.phase_space, new_shape)
 
         """Options for this stage:
-        1. k-means on raw vectors
-        2. k-means on normalised vectors (implemented)
-        3. k-means on log-transformed vectors
+        1. k-means on raw vectors (implemented)
+        2. k-means on normalised vectors - tested, worse than above option.
+        3. k-means on log-transformed vectors - tested, worse than above option.
         4. k-means on separated vector components (1D), removing the directionality.
         """
-        # Normalise the vectors to emphasise vector directionality importance.
-        norm_vectors = normalize(vectors)
 
         kmeans = KMeans(k)
-        kmeans.fit(norm_vectors)
+        kmeans.fit(vectors)
 
-        id_clusters = kmeans.fit_predict(norm_vectors)
+        id_clusters = kmeans.fit_predict(vectors)
 
         # Compute the un-normalised centroid vector for each 
         # k-means class.
