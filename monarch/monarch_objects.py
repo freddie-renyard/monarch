@@ -59,7 +59,12 @@ class PhaseSpace:
         # to make evaluation of the ODE with Euler's method faster in hardware.
         self.phase_space *= dt
 
-        self.compile_to_binary()
+        
+
+        # Compile to binary
+        self.bin_space = self.compile_to_binary()
+        
+        self.save_to_file()
                 
     def increment_addr(self, index_lst):
         
@@ -76,7 +81,7 @@ class PhaseSpace:
         """Compile the phase space to a binary representation.
         """
 
-        flat_bin_strs = []
+        flat_bin_lsts = []
 
         # Get the compiler parameters
         with open("monarch/hardware_params.json") as file:
@@ -100,7 +105,18 @@ class PhaseSpace:
                     ).bin
                 )
                 bin_vals.append(binary)
-            
-            print(bin_vals)
 
-        return flat_bin_strs
+            flat_bin_lsts.append(bin_vals)
+            
+        return flat_bin_lsts
+
+    def save_to_file(self):
+        """ Save a compiled memory to a file in the temporary cache.
+        """
+
+        filepath = "monarch/cache/phase_space_dim_{}"
+
+        for dim_i, binary_lst in enumerate(self.bin_space):
+            with open(filepath.format(dim_i), "w+") as file:
+                for component in binary_lst:
+                    file.write((component + " \n"))
