@@ -114,7 +114,7 @@ class PhaseSpace:
         """ Save a compiled memory to a file in the temporary cache.
         """
 
-        filepath = "monarch/cache/phase_space_dim_{}"
+        filepath = "monarch/cache/phase_space_dim_{}.mem"
 
         for dim_i, binary_lst in enumerate(self.bin_space):
             with open(filepath.format(dim_i), "w+") as file:
