@@ -2,6 +2,10 @@ import numpy as np
 import json 
 from bitstring import BitArray
 
+from matplotlib import pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import normalize
+
 class PhaseSpace:
 
     def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True):
@@ -59,7 +63,7 @@ class PhaseSpace:
         # to make evaluation of the ODE with Euler's method faster in hardware.
         self.phase_space *= dt
 
-        
+        self.k_means_split(32, plot_verbose=True)
 
         # Compile to binary
         self.bin_space = self.compile_to_binary()
@@ -120,3 +124,66 @@ class PhaseSpace:
             with open(filepath.format(dim_i), "w+") as file:
                 for component in binary_lst:
                     file.write((component + " \n"))
+
+    def k_means_split(self, k, plot_verbose=False):
+        """Split a phase space of arbitrary dimesions into K vectors.
+        Return the vectors and an associated pointer phase space as
+        numpy arrays.
+        """
+
+        # Flatten the phase space so that the vectors can be visualised
+        # outside of an image representation.
+        space_shape = np.shape(self.phase_space)
+        new_shape = (np.prod(space_shape[:-1]), space_shape[-1])
+        vectors = np.reshape(self.phase_space, new_shape)
+
+        """Options for this stage:
+        1. k-means on raw vectors
+        2. k-means on normalised vectors (implemented)
+        3. k-means on log-transformed vectors
+        4. k-means on separated vector components (1D), removing the directionality.
+        """
+        # Normalise the vectors to emphasise vector directionality importance.
+        norm_vectors = normalize(vectors)
+
+        kmeans = KMeans(k)
+        kmeans.fit(norm_vectors)
+
+        id_clusters = kmeans.fit_predict(norm_vectors)
+
+        # Compute the un-normalised centroid vector for each 
+        # k-means class.
+        means = np.zeros((k, self.dimensions))
+        counts = np.zeros((k))
+        
+        for i, addr in enumerate(id_clusters):
+            counts[addr] += 1
+            means[addr, :] = means[addr, :] + vectors[i, :]
+
+        # Divide the means by the number of cells containing a state vector belonging
+        # to it's k-means class. TODO double-check validity of these vectors.
+        means = means / np.repeat(np.expand_dims(counts, axis=1), self.dimensions, axis=1)
+
+        # Reshape the identifiers into the orginal tensor shape.
+        id_struct = np.reshape(id_clusters, space_shape[:-1])
+
+        if plot_verbose and self.dimensions == 2:
+
+            plt.title("")
+            plt.scatter(vectors[:, 0], vectors[:, 1], c = id_clusters, cmap='rainbow')
+
+            plt.subplot(1,3,1)
+            plt.title("K-means Clustering \nNormalised Phase Space")
+            plt.imshow(id_struct, cmap='gist_rainbow')
+
+            plt.subplot(1,3,2)
+            plt.title("Vector components for X")
+            plt.imshow(self.phase_space[:,:,0])
+
+            plt.subplot(1,3,3)
+            plt.title("Vector components for Y")
+            plt.imshow(self.phase_space[:,:,1])
+
+            plt.show()
+
+        return id_struct, means

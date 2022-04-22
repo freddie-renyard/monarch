@@ -23,4 +23,5 @@ phase_space = PhaseSpace(
     four_quadrant = True
 ) 
 
+plot_2d_phase_space(phase_space)
 plot_2d_components(phase_space)
