@@ -82,10 +82,22 @@ class PhaseSpace:
             rmse = math.sqrt(np.sum(squares) / len(difs))
             print("RMSE for the k-means representation: {:.5f}".format(rmse))
 
-            plt.subplot(1,2,1)
+            # Compute an MSE for each vector.
+            difs = reconstruct_space - self.phase_space
+            squares = np.square(difs)
+            mse_map = np.sum(squares, axis=2)
+
+            plt.subplot(1,3,1)
+            plt.title("Compressed Phase Space")
             plt.imshow(reconstruct_space[:,:,1])
-            plt.subplot(1,2,2)
+
+            plt.subplot(1,3,2)
+            plt.title("Original Phase Space")
             plt.imshow(self.phase_space[:,:,1])
+
+            plt.subplot(1,3,3)
+            plt.title("RMSE between representions")
+            plt.imshow(mse_map, cmap='hot')
 
             plt.show()
 
@@ -180,7 +192,7 @@ class PhaseSpace:
         3. k-means on log-transformed vectors - tested, worse than above option.
         4. k-means on separated vector components (1D), removing the directionality.
         """
-
+    
         kmeans = KMeans(k)
         kmeans.fit(vectors)
 
