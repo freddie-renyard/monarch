@@ -9,7 +9,7 @@ import math
 
 class PhaseSpace:
 
-    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, verbose=False, report_mem_usage=True):
+    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, verbose=True, report_mem_usage=True):
         """ A class which contains the compiled phase space data, along with methods 
         for compiling the equations passed to this class on initialisation.
         """
@@ -31,8 +31,6 @@ class PhaseSpace:
         phase_space_shape = self.space_shape + [self.dimensions]
         self.phase_space = np.zeros(phase_space_shape)
         
-        # Create an array of zeroes to hold the addresses when compiling.
-
         for dim_i, delta_eqn in enumerate(self.ode_system):
             # Extract each equation and compile the deltas for that direction
             # into a tensor.
@@ -65,7 +63,7 @@ class PhaseSpace:
         self.phase_space *= dt
 
         # Compile the k-means pointer space and the associated means.
-        k = 2 ** 5
+        k = 2 ** 8
         self.pointer_space, self.pointer_means = self.k_means_split(k, plot_verbose=False)
 
         # Compile and display a recontructed phase space from the 
@@ -91,6 +89,19 @@ class PhaseSpace:
 
             plt.show()
 
+        if report_mem_usage:
+            word_depth = 16 # Depth of main vector word.
+            ptr_depth = math.ceil(math.log2(k)) # Depth of k-means pointer
+
+            # Determine the number of bits needed to store
+            # the original phase space
+            bits = np.prod(np.shape(self.phase_space)) * word_depth
+            print("Memory needed to store the whole phase space: {:.1f} kbit".format(bits / 1000.0))
+
+            # Determine the number of bits needed to store the pointer-compressed space
+            bits = np.prod(np.shape(self.pointer_space)) * ptr_depth + np.prod(np.shape(self.pointer_means)) * word_depth
+            print("Memory needed to store the compressed phase space: {:.1f} kbit".format(bits / 1000.0))
+        
         # Compile to binary
         self.bin_space = self.compile_to_binary()
         
