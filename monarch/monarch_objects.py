@@ -123,10 +123,6 @@ class PhaseSpace:
             vec_lst = self.compile_vecs_to_bin(self.pointer_means[:, i])
             self.save_to_file(vec_lst, "vec_components_dim_{}".format(i))
 
-        # Compile to binary - non-pointer architecure
-        #self.bin_space = self.compile_to_binary()
-        #self.save_to_file_full()
-                
     def increment_addr(self, index_lst):
         
         for i in range(len(index_lst)):
@@ -137,39 +133,6 @@ class PhaseSpace:
                 break
 
         return index_lst
-
-    def compile_to_binary(self):
-        """Compile the phase space to a binary representation.
-        """
-
-        flat_bin_lsts = []
-
-        # Get the compiler parameters
-        with open("monarch/hardware_params.json") as file:
-            comp_params = json.load(file)
-
-        scale_factor = 2 ** comp_params["delta_radix"]
-
-        # Extract the vector components for each dimension of phase space.
-        for vector_comps in np.moveaxis(self.phase_space, -1, 0):
-
-            flat_vectors = vector_comps.flatten()
-            
-            flat_vectors *= scale_factor
-            flat_vectors = flat_vectors.astype(int)
-
-            bin_vals = []
-            for vector_component in flat_vectors:
-                binary = str(BitArray(
-                    int=vector_component, 
-                    length=comp_params["delta_depth"]
-                    ).bin
-                )
-                bin_vals.append(binary)
-
-            flat_bin_lsts.append(bin_vals)
-            
-        return flat_bin_lsts
 
     def compile_pointers_to_bin(self, pointer_space):
         
@@ -212,17 +175,6 @@ class PhaseSpace:
             bin_vals.append(binary)
 
         return bin_vals
-
-    def save_to_file_full(self):
-        """ Save a compiled full phase space to a file in the temporary cache.
-        """
-
-        filepath = "monarch/cache/phase_space_dim_{}.mem"
-
-        for dim_i, binary_lst in enumerate(self.bin_space):
-            with open(filepath.format(dim_i), "w+") as file:
-                for component in binary_lst:
-                    file.write((component + " \n"))
 
     def save_to_file(self, bin_lst, file_name):
         """Save a list of binary strings to a .mem file.
