@@ -1,10 +1,10 @@
+from re import I
 import numpy as np
 import json 
 from bitstring import BitArray
 
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import normalize
 import math
 
 class PhaseSpace:
@@ -63,8 +63,8 @@ class PhaseSpace:
         self.phase_space *= dt
 
         # Compile the k-means pointer space and the associated means.
-        k = 2 ** 8
-        self.pointer_space, self.pointer_means = self.k_means_split(k, plot_verbose=False)
+        self.k = 2 ** 8
+        self.pointer_space, self.pointer_means = self.k_means_split(self.k, plot_verbose=False)
 
         # Compile and display a recontructed phase space from the 
         # k-means data, and compute the RMSE.
@@ -103,7 +103,7 @@ class PhaseSpace:
 
         if report_mem_usage:
             word_depth = 16 # Depth of main vector word.
-            ptr_depth = math.ceil(math.log2(k)) # Depth of k-means pointer
+            ptr_depth = math.ceil(math.log2(self.k)) # Depth of k-means pointer
 
             # Determine the number of bits needed to store
             # the original phase space
@@ -114,10 +114,18 @@ class PhaseSpace:
             bits = np.prod(np.shape(self.pointer_space)) * ptr_depth + np.prod(np.shape(self.pointer_means)) * word_depth
             print("Memory needed to store the compressed phase space: {:.1f} kbit".format(bits / 1000.0))
         
-        # Compile to binary
-        self.bin_space = self.compile_to_binary()
-        
-        self.save_to_file()
+        # Compile and save the pointers to a binary.
+        bin_pointers = self.compile_pointers_to_bin(self.pointer_space)
+        self.save_to_file(bin_pointers, "pointers")
+
+        # Compile and save each component dimension of the delta vectors to a binary.
+        for i in range(self.dimensions):
+            vec_lst = self.compile_vecs_to_bin(self.pointer_means[:, i])
+            self.save_to_file(vec_lst, "vec_components_dim_{}".format(i))
+
+        # Compile to binary - non-pointer architecure
+        #self.bin_space = self.compile_to_binary()
+        #self.save_to_file_full()
                 
     def increment_addr(self, index_lst):
         
@@ -163,8 +171,50 @@ class PhaseSpace:
             
         return flat_bin_lsts
 
-    def save_to_file(self):
-        """ Save a compiled memory to a file in the temporary cache.
+    def compile_pointers_to_bin(self, pointer_space):
+        
+        flat_ptrs = pointer_space.flatten()
+ 
+        # Compute the required depth to store the number of vectors
+        ptr_depth = math.ceil(math.log2(self.k))
+    
+        ptr_bins = []
+        for ptr in flat_ptrs:
+            binary = str(BitArray(
+                    uint=ptr, 
+                    length=ptr_depth
+                    ).bin
+                )
+            ptr_bins.append(binary)
+        
+        return ptr_bins
+
+    def compile_vecs_to_bin(self, vec_lst):
+        """Compile a 1D list of vectors to a list of binary strings.
+        """
+
+        # Get the compiler parameters
+        with open("monarch/hardware_params.json") as file:
+            comp_params = json.load(file)
+
+        scale_factor = 2 ** comp_params["delta_radix"]
+
+        vec_lst *= scale_factor
+        vec_lst = vec_lst.astype(int)
+
+        bin_vals = []
+        for vector_component in vec_lst:
+            binary = str(BitArray(
+                int=vector_component, 
+                length=comp_params["delta_depth"]
+                ).bin
+            )
+            bin_vals.append(binary)
+
+        return bin_vals
+
+    def save_to_file_full(self):
+        """ Save a compiled full phase space to a file in the temporary cache.
         """
 
         filepath = "monarch/cache/phase_space_dim_{}.mem"
@@ -174,6 +224,16 @@ class PhaseSpace:
                 for component in binary_lst:
                     file.write((component + " \n"))
 
+    def save_to_file(self, bin_lst, file_name):
+        """Save a list of binary strings to a .mem file.
+        """
+
+        filepath = "monarch/cache/" + file_name + ".mem"
+
+        with open(filepath, "w+") as file:
+            for component in bin_lst:
+                    file.write((component + " \n"))
+    
     def k_means_split(self, k, plot_verbose=False):
         """Split a phase space of arbitrary dimesions into K vectors.
         Return the vectors and an associated pointer phase space as
@@ -186,13 +246,15 @@ class PhaseSpace:
         new_shape = (np.prod(space_shape[:-1]), space_shape[-1])
         vectors = np.reshape(self.phase_space, new_shape)
 
-        """Options for this stage:
+        """Options for the pre-processing stage:
         1. k-means on raw vectors (implemented)
-        2. k-means on normalised vectors - tested, worse than above option.
-        3. k-means on log-transformed vectors - tested, worse than above option.
+        2. k-means on normalised vectors - RMSE is worse than above option.
+        3. k-means on log-transformed vectors - RMSE is worse than above option.
         4. k-means on separated vector components (1D), removing the directionality.
+
+        Test when simulating. Test against existing full precision MATLAB simulations.
         """
-    
+
         kmeans = KMeans(k)
         kmeans.fit(vectors)
 
