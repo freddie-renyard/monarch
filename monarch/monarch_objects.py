@@ -75,7 +75,7 @@ class PhaseSpace:
             
             space_shape = np.shape(self.pointer_space) + (self.dimensions,)
             reconstruct_space = np.reshape(reconstruct_space, space_shape)
-        
+
             # Compute the RMSE between the representations.
             difs = reconstruct_space.flatten() - self.phase_space.flatten()
             squares = difs ** 2
@@ -87,13 +87,19 @@ class PhaseSpace:
             squares = np.square(difs)
             mse_map = np.sum(squares, axis=2)
 
+            grad_field_compressed = np.sqrt((reconstruct_space[:,:,0]**2 + reconstruct_space[:,:,1]**2))
+            grad_field_compressed = np.rot90(grad_field_compressed)
+
             plt.subplot(1,3,1)
             plt.title("Compressed Phase Space")
-            plt.imshow(reconstruct_space[:,:,1])
+            plt.imshow(grad_field_compressed, cmap='seismic')
+
+            grad_field = np.sqrt((self.phase_space[:,:,0]**2 + self.phase_space[:,:,1]**2))
+            grad_field = np.rot90(grad_field)
 
             plt.subplot(1,3,2)
             plt.title("Original Phase Space")
-            plt.imshow(self.phase_space[:,:,1])
+            plt.imshow(grad_field, cmap='seismic')
 
             plt.subplot(1,3,3)
             plt.title("RMSE between representions")
