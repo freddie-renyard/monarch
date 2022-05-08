@@ -9,7 +9,7 @@ import math
 
 class PhaseSpace:
 
-    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, verbose=True, report_mem_usage=True):
+    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, verbose=False, report_mem_usage=True):
         """ A class which contains the compiled phase space data, along with methods 
         for compiling the equations passed to this class on initialisation.
         """
