@@ -1,6 +1,4 @@
 {
-    "delta_depth" : 16, 
-    "delta_radix" : 12,
-    "state_depth" : 24,
-    "state_radix" : 16
+    "datapath_size": 24,
+    "memory_size": 24
 }

@@ -6,6 +6,7 @@ from bitstring import BitArray
 from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
 import math
+from math import log2, ceil
 
 class PhaseSpace:
 
@@ -21,7 +22,7 @@ class PhaseSpace:
         self.resolution = resolution
         self.space_shape = [resolution] * self.dimensions
     
-        # Generate a linspace which represents each dimesion in the input system.
+        # Generate a linspace which represents each dimension in the input system.
         if four_quadrant:
             self.linspace = np.linspace(-max_limit, max_limit, num=resolution)
         else:
@@ -120,6 +121,27 @@ class PhaseSpace:
             bits = np.prod(np.shape(self.pointer_space)) * ptr_depth + np.prod(np.shape(self.pointer_means)) * word_depth
             print("Memory needed to store the compressed phase space: {:.1f} kbit".format(bits / 1000.0))
         
+        # Get the hardware parameters and set the system bit depths.
+        with open("monarch/hardware_params.json") as file:
+            hardware_params = json.load(file)
+        
+        self.datapath_size = hardware_params["datapath_size"]
+        self.memory_size = hardware_params["memory_size"]
+
+        # Compile radix parameters.
+        int_dynamic_range = ceil(log2(max_limit + 1)) # Add one for the sign bit.
+        self.radix = self.datapath_size - int_dynamic_range
+
+        # Calculate real to address conversion parameters
+        self.dim_width = ceil(log2(resolution))
+        
+        if four_quadrant:
+            self.real_to_addr = self.datapath_size - self.dim_width
+        else:
+            self.real_to_addr = self.datapath_size - 1 - self.dim_width
+
+        print("Radix: {}   REAL_TO_ADDR: {}   DIM_WIDTH: {}".format(self.radix, hex(self.real_to_addr), hex(self.dim_width)))
+
         # Compile and save the pointers to a binary.
         bin_pointers = self.compile_pointers_to_bin(self.pointer_space)
         self.save_to_file(bin_pointers, "pointers")
@@ -162,11 +184,7 @@ class PhaseSpace:
         """Compile a 1D list of vectors to a list of binary strings.
         """
 
-        # Get the compiler parameters
-        with open("monarch/hardware_params.json") as file:
-            comp_params = json.load(file)
-
-        scale_factor = 2 ** comp_params["delta_radix"]
+        scale_factor = 2 ** self.radix
 
         vec_lst *= scale_factor
         vec_lst = vec_lst.astype(int)
@@ -174,8 +192,8 @@ class PhaseSpace:
         bin_vals = []
         for vector_component in vec_lst:
             binary = str(BitArray(
-                int=vector_component, 
-                length=comp_params["delta_depth"]
+                int = vector_component, 
+                length = self.memory_size
                 ).bin
             )
             bin_vals.append(binary)
