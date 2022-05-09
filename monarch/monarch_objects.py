@@ -174,7 +174,7 @@ class PhaseSpace:
             binary = str(BitArray(
                     uint=ptr, 
                     length=ptr_depth
-                    ).bin
+                    ).hex
                 )
             ptr_bins.append(binary)
         
@@ -194,7 +194,7 @@ class PhaseSpace:
             binary = str(BitArray(
                 int = vector_component, 
                 length = self.memory_size
-                ).bin
+                ).hex
             )
             bin_vals.append(binary)
 
