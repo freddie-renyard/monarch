@@ -1,6 +1,7 @@
 from monarch.monarch_objects import PhaseSpace
 from monarch.visual_tools import plot_histogram, plot_2d_phase_space, plot_2d_components
 
+from matplotlib import pyplot as plt
 # An compilation of the FitzHugh-Nagumo (FHN) neuron, a simplification of the 
 # Hodkin-Huxley dynamic neuron model.
 
@@ -18,10 +19,13 @@ ode = (
 phase_space = PhaseSpace(
     ode_system = ode,
     dt = 0.001,
-    resolution = 64,
+    resolution = 32,
     max_limit = 8,
     four_quadrant = True
-) 
+)
 
+plt.imshow(phase_space.phase_space[:,:,0])
+plt.show()
+exit()
 plot_2d_phase_space(phase_space)
 plot_2d_components(phase_space)

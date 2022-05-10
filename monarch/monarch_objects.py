@@ -1,16 +1,15 @@
+from ctypes import pointer
 from re import I
 import numpy as np
 import json 
-from bitstring import BitArray
-
-from matplotlib import pyplot as plt
+from bitstring import BitArray, Bits
 from sklearn.cluster import KMeans
 import math
 from math import log2, ceil
 
 class PhaseSpace:
 
-    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, verbose=False, report_mem_usage=True):
+    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, report_mem_usage=True):
         """ A class which contains the compiled phase space data, along with methods 
         for compiling the equations passed to this class on initialisation.
         """
@@ -77,7 +76,13 @@ class PhaseSpace:
         print("Radix: {}   REAL_TO_ADDR: {}   DIM_WIDTH: {}".format(self.radix, hex(self.real_to_addr), hex(self.dim_width)))
 
         # Compile and save the pointers to a binary.
-        bin_pointers = self.compile_pointers_to_bin(self.pointer_space)
+        if four_quadrant:
+            comp_ptrs = self.compile_four_quad_pointers(self.pointer_space)
+        else:   
+            comp_ptrs = self.pointer_space
+    
+        bin_pointers = self.compile_pointers_to_bin(comp_ptrs)
+
         self.save_to_file(bin_pointers, "pointers")
 
         # Compile and save each component dimension of the delta vectors to a binary.
@@ -158,6 +163,49 @@ class PhaseSpace:
             ptr_bins.append(binary)
         
         return ptr_bins
+
+    def compile_four_quad_pointers(self, pointer_space):
+        """Save the pointer space to a binary, but reorder the input address 
+        space first to ensure that two's complement addresses are valid.
+        """
+
+        # Get linspace for the input addresses across each dimension
+        linspace = np.array([i for i in range(0, self.resolution, 1)])
+
+        # Offset the linspace to show the actual addresses 
+        linspace = linspace - self.resolution // 2
+        
+        # Convert the linspace to 2s complement bitstrings interpreted as
+        # unsigned addresses (as this is the hardware's interpretation)
+        bin_linspace = []
+        for addr in linspace:
+            bin_linspace.append(Bits(int=addr, length=self.dim_width).uint)
+        
+        # Recursively reorder the pointer space.
+        # TODO Test this for dimensions higher than 2.
+        def reorder_elements(flat_array, linspace, dimension, max_dim):
+            
+            # Get the step of the array.
+            step = self.resolution ** dimension
+            outer_step = self.resolution ** (dimension+1)
+
+            reord_arr = np.zeros(np.shape(flat_array))
+
+            offset = 0
+            while offset != np.shape(flat_array)[0]:
+
+                for i, addr in enumerate(linspace):
+                    window = flat_array[offset + (i*step) : offset + (i*step) + step]
+                    reord_arr[offset + (addr*step) : offset + (addr*step) + step] = window 
+
+                offset += outer_step
+            
+            if dimension == max_dim-1:
+                return reord_arr
+            else:
+                return reorder_elements(reord_arr, bin_linspace, dimension+1, max_dim)
+
+        return reorder_elements(pointer_space.flatten(), bin_linspace, 0, max_dim=self.dimensions).astype("int")
 
     def compile_vecs_to_bin(self, vec_lst):
         """Compile a 1D list of vectors to a list of binary strings.
