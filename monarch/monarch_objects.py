@@ -18,6 +18,7 @@ class PhaseSpace:
         # A tuple of lambda functions which describe the system to be modelled.
         self.ode_system = ode_system
         self.dimensions = len(ode_system)
+        self.four_quadrant = four_quadrant
         
         if four_quadrant:
             self.dim_length = max_limit * 2
@@ -26,51 +27,13 @@ class PhaseSpace:
         
         self.resolution = resolution
         self.space_shape = [resolution] * self.dimensions
-    
-        # Generate a linspace which represents each dimension in the input system.
-        if four_quadrant:
-            self.linspace = np.linspace(-max_limit, max_limit, num=resolution)
-        else:
-            self.linspace = np.linspace(0, max_limit, num=resolution)
+        self.dt = dt
 
-        # Create the output phase space.
-        phase_space_shape = self.space_shape + [self.dimensions]
-        self.phase_space = np.zeros(phase_space_shape)
-        
-        for dim_i, delta_eqn in enumerate(self.ode_system):
-            # Extract each equation and compile the deltas for that direction
-            # into a tensor.
-            break_next = False
-            ind_arr = [0] * self.dimensions
-            while True:
-                
-                # Get the current entry in phase space.
-                address = tuple(ind_arr + [dim_i])
-                
-                # Get the real values for the current address from the linspace.
-                dim_args = []
-                for i in ind_arr:
-                    dim_args.append(self.linspace[i])
-                
-                self.phase_space[address] = delta_eqn(*dim_args)
-                
-                ind_arr = self.increment_addr(ind_arr)
-
-                if break_next:
-                    break
-
-                # Set a break next condition to ensure all the addresses are
-                # calculated.
-                if sum(ind_arr) == (self.resolution-1)*self.dimensions:
-                    break_next = True
-        
-        # Mutliply all the values in the phase space by the timestep
-        # to make evaluation of the ODE with Euler's method faster in hardware.
-        self.phase_space *= dt
+        self.create_cellular_phase_space(max_limit = max_limit)
 
         # Compile the k-means pointer space and the associated means.
         self.k = 2 ** 10
-        self.pointer_space, self.pointer_means = self.k_means_split(self.k, plot_verbose=verbose)
+        self.pointer_space, self.pointer_means = self.k_means_split(self.k)
 
         if report_mem_usage:
             word_depth = 16 # Depth of main vector word.
@@ -125,6 +88,50 @@ class PhaseSpace:
                 break
 
         return index_lst
+
+    def create_cellular_phase_space(self, max_limit):
+        """Create the cellular phase space.
+        """
+
+        # Generate a linspace which represents each dimension in the input system.
+        if self.four_quadrant:
+            linspace = np.linspace(-max_limit, max_limit, num=self.resolution)
+        else:
+            linspace = np.linspace(0, max_limit, num=self.resolution)
+
+        phase_space_shape = self.space_shape + [self.dimensions]
+        self.phase_space = np.zeros(phase_space_shape)
+        
+        for dim_i, delta_eqn in enumerate(self.ode_system):
+            # Extract each equation and compile the deltas for that direction
+            # into a tensor.
+            break_next = False
+            ind_arr = [0] * self.dimensions
+            while True:
+                
+                # Get the current entry in phase space.
+                address = tuple(ind_arr + [dim_i])
+                
+                # Get the real values for the current address from the linspace.
+                dim_args = []
+                for i in ind_arr:
+                    dim_args.append(linspace[i])
+                
+                self.phase_space[address] = delta_eqn(*dim_args)
+                
+                ind_arr = self.increment_addr(ind_arr)
+
+                if break_next:
+                    break
+
+                # Set a break next condition to ensure all the addresses are
+                # calculated.
+                if sum(ind_arr) == (self.resolution-1)*self.dimensions:
+                    break_next = True
+        
+        # Mutliply all the values in the phase space by the timestep
+        # to make evaluation of the ODE with Euler's method faster in hardware.
+        self.phase_space *= self.dt
 
     def compile_pointers_to_bin(self, pointer_space):
         
