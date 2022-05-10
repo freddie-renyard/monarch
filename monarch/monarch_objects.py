@@ -19,20 +19,31 @@ class PhaseSpace:
         self.ode_system = ode_system
         self.dimensions = len(ode_system)
         self.four_quadrant = four_quadrant
+
+        # Ensure that the max_limit is a power of 2.
+        max_limit = 2 ** ceil(log2(max_limit))
         
         if four_quadrant:
             self.dim_length = max_limit * 2
         else:
             self.dim_length = max_limit
-        
-        self.resolution = resolution
-        self.space_shape = [resolution] * self.dimensions
+
+        # Get the hardware parameters.
+        with open("monarch/hardware_params.json") as file:
+            hardware_params = json.load(file)
+
+        if resolution > hardware_params["max_resolution"]:
+            raise(ValueError("MONArch: Resolution is above the current hardware maximum."))
+        else:
+            # Ensure that the resolution is a power of 2.
+            self.resolution = 2 ** ceil(log2(resolution))
+
         self.dt = dt
 
         self.create_cellular_phase_space(max_limit = max_limit)
 
         # Compile the k-means pointer space and the associated means.
-        self.k = 2 ** 10
+        self.k = 2 ** hardware_params["pointer_size"]
         self.pointer_space, self.pointer_means = self.k_means_split(self.k)
 
         if report_mem_usage:
@@ -47,10 +58,6 @@ class PhaseSpace:
             # Determine the number of bits needed to store the pointer-compressed space
             bits = np.prod(np.shape(self.pointer_space)) * ptr_depth + np.prod(np.shape(self.pointer_means)) * word_depth
             print("Memory needed to store the compressed phase space: {:.1f} kbit".format(bits / 1000.0))
-        
-        # Get the hardware parameters and set the system bit depths.
-        with open("monarch/hardware_params.json") as file:
-            hardware_params = json.load(file)
         
         self.datapath_size = hardware_params["datapath_size"]
         self.memory_size = hardware_params["memory_size"]
@@ -99,7 +106,8 @@ class PhaseSpace:
         else:
             linspace = np.linspace(0, max_limit, num=self.resolution)
 
-        phase_space_shape = self.space_shape + [self.dimensions]
+        space_shape = [self.resolution] * self.dimensions
+        phase_space_shape = space_shape + [self.dimensions]
         self.phase_space = np.zeros(phase_space_shape)
         
         for dim_i, delta_eqn in enumerate(self.ode_system):

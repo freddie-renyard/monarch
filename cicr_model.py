@@ -45,7 +45,7 @@ ode = (
 
 phase_space = PhaseSpace(
     ode_system = ode,
-    resolution = 64,
+    resolution = 60,
     max_limit = 32, 
     dt = 0.001,
     four_quadrant = False,
