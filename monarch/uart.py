@@ -5,7 +5,7 @@ import numpy as np
 
 class UART:
 
-    def __init__(self, baud=3000000, port_name="/dev/tty.usbserial-FT4ZS6I31"):
+    def __init__(self, phase_space, baud=3000000, port_name="/dev/tty.usbserial-FT4ZS6I31"):
         """Initialises a serial link to a MONArch device.
         """
 
@@ -13,8 +13,8 @@ class UART:
         self.port_name = port_name
 
         # Model Parameters - will be extracted from the PhaseSpace object.
-        self.dims = 2
-        self.scale_factor = 2.0 ** 18
+        self.dims = phase_space.dimensions
+        self.scale_factor = 2.0 ** phase_space.radix # HARDCODED
 
         # Receive parameters
         self.bytes_per_dim = 3 # Bit depth of 24 for each dimension

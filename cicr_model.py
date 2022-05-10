@@ -45,18 +45,23 @@ ode = (
 
 phase_space = PhaseSpace(
     ode_system = ode,
-    resolution = 60,
+    resolution = 64,
     max_limit = 32, 
     dt = 0.001,
-    four_quadrant = False,
-    verbose = False
+    four_quadrant = False
 )
 
-plot_histogram(phase_space)
-plot_2d_phase_space(phase_space)
-plot_2d_components(phase_space)
+#plot_histogram(phase_space)
+#plot_2d_phase_space(phase_space, show_fig=True)
+#plot_2d_components(phase_space)
 
-fpga = UART()
-output_state = fpga.primary_eval(timesteps=2000)
+fpga = UART(phase_space)
+output_state = fpga.primary_eval(timesteps=50000)
 
 plot_2d_simulation(output_state, phase_space)
+
+plt.plot(output_state[:, 1])
+plt.show()
+
+plt.plot(output_state[:, 0])
+plt.show()

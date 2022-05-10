@@ -11,13 +11,14 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True, show_fig=False)
     gradient vector magnitude.
     """
 
+    plot_space_x = phase_object.phase_space[:, :, 0]
+    plot_space_y = phase_object.phase_space[:, :, 1]
+
     if phase_object.dimensions != 2:
         raise ValueError("Dimensionality of the input PhaseSpace Object is not 2.")
 
     # Compute the magnitude of each vector.
-    x_deltas = phase_object.phase_space[:, :, 0]
-    y_deltas = phase_object.phase_space[:, :, 1]
-    magnitudes = np.sqrt((x_deltas**2 + y_deltas**2))
+    magnitudes = np.sqrt((plot_space_x**2 + plot_space_y**2))
 
     skip = phase_object.resolution // 32
     xgrid = range(0,phase_object.resolution)
@@ -30,13 +31,13 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True, show_fig=False)
         plot_name += " of " + name
 
     plt.title(plot_name)
-    plt.imshow(magnitudes, cmap='bwr')
+    plt.imshow(magnitudes, cmap='bwr', origin='lower')
     if show_arrows:
         plt.quiver(x[::skip,::skip], y[::skip,::skip],
-                phase_object.phase_space[::skip,::skip, 1],
-                -phase_object.phase_space[::skip,::skip, 0],
+                plot_space_x[::skip,::skip],
+                plot_space_y[::skip,::skip],
                 color='r',
-                scale=7
+                scale=0.1
         )
     
     plt.axis('off')
@@ -76,7 +77,7 @@ def plot_3d_phase_space(phase_object, name=""):
         phase_object.phase_space[1,::skip,::skip,::skip], 
         phase_object.phase_space[2,::skip,::skip,::skip], 
 
-        length=0.7,
+        length=7,
         color="r",
         normalize=True
     )
@@ -149,8 +150,13 @@ def plot_2d_simulation(sim_data, phase_space, show_fig=True):
 
     scale_factor = phase_space.resolution / phase_space.dim_length
 
-    x = sim_data[:,0]*scale_factor
-    y = sim_data[:,1]*scale_factor
+    if phase_space.four_quadrant:
+        offset = phase_space.resolution // 2
+    else:
+        offset = 0.0
+
+    x = sim_data[:,0]*scale_factor + offset
+    y = sim_data[:,1]*scale_factor + offset
     
     plt.plot(x, y, color='#29FF22')
 

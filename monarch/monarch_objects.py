@@ -9,7 +9,7 @@ from math import log2, ceil
 
 class PhaseSpace:
 
-    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, report_mem_usage=True):
+    def __init__(self, ode_system, dt, resolution, max_limit, four_quadrant=True, report_mem_usage=True, compress_space=True):
         """ A class which contains the compiled phase space data, along with methods 
         for compiling the equations passed to this class on initialisation.
         """
@@ -41,23 +41,6 @@ class PhaseSpace:
 
         self.create_cellular_phase_space(max_limit = max_limit)
 
-        # Compile the k-means pointer space and the associated means.
-        self.k = 2 ** hardware_params["pointer_size"]
-        self.pointer_space, self.pointer_means = self.k_means_split(self.k)
-
-        if report_mem_usage:
-            word_depth = 16 # Depth of main vector word.
-            ptr_depth = math.ceil(math.log2(self.k)) # Depth of k-means pointer
-
-            # Determine the number of bits needed to store
-            # the original phase space
-            bits = np.prod(np.shape(self.phase_space)) * word_depth
-            print("Memory needed to store the whole phase space: {:.1f} kbit".format(bits / 1000.0))
-
-            # Determine the number of bits needed to store the pointer-compressed space
-            bits = np.prod(np.shape(self.pointer_space)) * ptr_depth + np.prod(np.shape(self.pointer_means)) * word_depth
-            print("Memory needed to store the compressed phase space: {:.1f} kbit".format(bits / 1000.0))
-        
         self.datapath_size = hardware_params["datapath_size"]
         self.memory_size = hardware_params["memory_size"]
 
@@ -75,20 +58,39 @@ class PhaseSpace:
 
         print("Radix: {}   REAL_TO_ADDR: {}   DIM_WIDTH: {}".format(self.radix, hex(self.real_to_addr), hex(self.dim_width)))
 
-        # Compile and save the pointers to a binary.
-        if four_quadrant:
-            comp_ptrs = self.compile_four_quad_pointers(self.pointer_space)
-        else:   
-            comp_ptrs = self.pointer_space
-    
-        bin_pointers = self.compile_pointers_to_bin(comp_ptrs)
+        # Compile the k-means pointer space and the associated means.
+        self.k = 2 ** hardware_params["pointer_size"]
 
-        self.save_to_file(bin_pointers, "pointers")
+        if compress_space:
+            self.pointer_space, self.pointer_means = self.k_means_split(self.k)
 
-        # Compile and save each component dimension of the delta vectors to a binary.
-        for i in range(self.dimensions):
-            vec_lst = self.compile_vecs_to_bin(self.pointer_means[:, i])
-            self.save_to_file(vec_lst, "vec_components_dim_{}".format(i))
+            # Compile and save the pointers to a binary.
+            if four_quadrant:
+                comp_ptrs = self.compile_four_quad_pointers(self.pointer_space)
+            else:   
+                comp_ptrs = self.pointer_space
+        
+            bin_pointers = self.compile_pointers_to_bin(comp_ptrs)
+
+            self.save_to_file(bin_pointers, "pointers")
+
+            if report_mem_usage:
+                word_depth = 16 # Depth of main vector word.
+                ptr_depth = math.ceil(math.log2(self.k)) # Depth of k-means pointer
+
+                # Determine the number of bits needed to store
+                # the original phase space
+                bits = np.prod(np.shape(self.phase_space)) * word_depth
+                print("Memory needed to store the whole phase space: {:.1f} kbit".format(bits / 1000.0))
+
+                # Determine the number of bits needed to store the pointer-compressed space
+                bits = np.prod(np.shape(self.pointer_space)) * ptr_depth + np.prod(np.shape(self.pointer_means)) * word_depth
+                print("Memory needed to store the compressed phase space: {:.1f} kbit".format(bits / 1000.0))
+        
+            # Compile and save each component dimension of the delta vectors to a binary.
+            for i in range(self.dimensions):
+                vec_lst = self.compile_vecs_to_bin(self.pointer_means[:, i])
+                self.save_to_file(vec_lst, "vec_components_dim_{}".format(i))
 
     def increment_addr(self, index_lst):
         
@@ -123,7 +125,7 @@ class PhaseSpace:
             while True:
                 
                 # Get the current entry in phase space.
-                address = tuple(ind_arr + [dim_i])
+                address = tuple(ind_arr[::-1] + [dim_i])
                 
                 # Get the real values for the current address from the linspace.
                 dim_args = []

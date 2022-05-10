@@ -1,6 +1,8 @@
 from monarch.monarch_objects import PhaseSpace
-from monarch.visual_tools import plot_2d_phase_space, plot_histogram
+from monarch.visual_tools import plot_2d_phase_space, plot_histogram, plot_2d_simulation
 from math import cos, sin
+from monarch.uart import UART
+from matplotlib import pyplot as plt
 
 # Define a simple ODE with sine and cosine functions.
 ode = (
@@ -16,5 +18,10 @@ phase_space = PhaseSpace(
     four_quadrant = True
 )
 
-plot_histogram(phase_space)
-plot_2d_phase_space(phase_space, "a periodic function")
+plot_2d_phase_space(phase_space, show_fig=True)
+exit()
+fpga = UART()
+
+output_data = fpga.primary_eval(timesteps=10000)
+print(output_data)
+plot_2d_simulation(output_data, phase_space)
