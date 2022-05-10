@@ -72,47 +72,6 @@ class PhaseSpace:
         self.k = 2 ** 10
         self.pointer_space, self.pointer_means = self.k_means_split(self.k, plot_verbose=verbose)
 
-        # Compile and display a recontructed phase space from the 
-        # k-means data, and compute the RMSE.
-        if verbose:
-            reconstruct_space = []
-            for ptr in self.pointer_space.flatten():
-                reconstruct_space.append(self.pointer_means[ptr])
-            
-            space_shape = np.shape(self.pointer_space) + (self.dimensions,)
-            reconstruct_space = np.reshape(reconstruct_space, space_shape)
-
-            # Compute the RMSE between the representations.
-            difs = reconstruct_space.flatten() - self.phase_space.flatten()
-            squares = difs ** 2
-            rmse = math.sqrt(np.sum(squares) / len(difs))
-            print("RMSE for the k-means representation: {:.5f}".format(rmse))
-
-            # Compute an MSE for each vector.
-            difs = reconstruct_space - self.phase_space
-            squares = np.square(difs)
-            mse_map = np.sum(squares, axis=2)
-
-            grad_field_compressed = np.sqrt((reconstruct_space[:,:,0]**2 + reconstruct_space[:,:,1]**2))
-            grad_field_compressed = np.rot90(grad_field_compressed)
-
-            plt.subplot(1,3,1)
-            plt.title("Compressed Phase Space")
-            plt.imshow(grad_field_compressed, cmap='seismic')
-
-            grad_field = np.sqrt((self.phase_space[:,:,0]**2 + self.phase_space[:,:,1]**2))
-            grad_field = np.rot90(grad_field)
-
-            plt.subplot(1,3,2)
-            plt.title("Original Phase Space")
-            plt.imshow(grad_field, cmap='seismic')
-
-            plt.subplot(1,3,3)
-            plt.title("RMSE between representions")
-            plt.imshow(mse_map, cmap='hot')
-
-            plt.show()
-
         if report_mem_usage:
             word_depth = 16 # Depth of main vector word.
             ptr_depth = math.ceil(math.log2(self.k)) # Depth of k-means pointer

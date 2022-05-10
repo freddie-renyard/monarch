@@ -1,4 +1,8 @@
 {
     "datapath_size": 24,
-    "memory_size": 24
+    "memory_size": 24,
+    "pointer_size": 10,
+    "max_states": 1024,
+    "max_resolution": 64,
+    "max_dim": 2
 }

@@ -1,7 +1,7 @@
 from cmath import phase
 from matplotlib import pyplot as plt
 from monarch.monarch_objects import PhaseSpace
-from monarch.visual_tools import plot_2d_components, plot_2d_phase_space, plot_histogram, plot_2d_simulation
+from monarch.visual_tools import plot_2d_components, plot_2d_phase_space, plot_histogram, plot_2d_simulation, plot_reconstructed_space
 from monarch.uart import UART
 
 from matplotlib import pyplot as plt
@@ -57,6 +57,6 @@ plot_2d_phase_space(phase_space)
 plot_2d_components(phase_space)
 
 fpga = UART()
-output_state = fpga.primary_eval(timesteps=100)
+output_state = fpga.primary_eval(timesteps=2000)
 
 plot_2d_simulation(output_state, phase_space)

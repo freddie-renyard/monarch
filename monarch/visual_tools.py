@@ -3,7 +3,7 @@ from unicodedata import name
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import colors
-from math import log10, log2
+from math import log10, log2, sqrt
 
 def plot_2d_phase_space(phase_object, name="", show_arrows=True, show_fig=False):
     """Plots a 2D phase diagram for a given PhaseSpace object and shows
@@ -152,7 +152,51 @@ def plot_2d_simulation(sim_data, phase_space, show_fig=True):
     x = sim_data[:,0]*scale_factor
     y = sim_data[:,1]*scale_factor
     
-    plt.plot(x, y, color='pink')
+    plt.plot(x, y, color='#29FF22')
+
+    if show_fig:
+        plt.show()
+
+def plot_reconstructed_space(phase_space, show_fig=True):
+    """Compile and display a recontructed phase space from the 
+    k-means data, and compute the RMSE.
+    """
+
+    reconstruct_space = []
+    for ptr in phase_space.pointer_space.flatten():
+        reconstruct_space.append(phase_space.pointer_means[ptr])
+    
+    space_shape = np.shape(phase_space.pointer_space) + (phase_space.dimensions,)
+    reconstruct_space = np.reshape(reconstruct_space, space_shape)
+
+    # Compute the RMSE between the representations.
+    difs = reconstruct_space.flatten() - phase_space.phase_space.flatten()
+    squares = difs ** 2
+    rmse = sqrt(np.sum(squares) / len(difs))
+    print("RMSE for the k-means representation: {:.5f}".format(rmse))
+
+    # Compute an MSE for each vector.
+    difs = reconstruct_space - phase_space.phase_space
+    squares = np.square(difs)
+    mse_map = np.sum(squares, axis=2)
+
+    grad_field_compressed = np.sqrt((reconstruct_space[:,:,0]**2 + reconstruct_space[:,:,1]**2))
+    grad_field_compressed = np.rot90(grad_field_compressed)
+
+    plt.subplot(1,3,1)
+    plt.title("Compressed Phase Space")
+    plt.imshow(grad_field_compressed, cmap='seismic')
+
+    grad_field = np.sqrt((phase_space.phase_space[:,:,0]**2 + phase_space.phase_space[:,:,1]**2))
+    grad_field = np.rot90(grad_field)
+
+    plt.subplot(1,3,2)
+    plt.title("Original Phase Space")
+    plt.imshow(grad_field, cmap='seismic')
+
+    plt.subplot(1,3,3)
+    plt.title("RMSE between representions")
+    plt.imshow(mse_map, cmap='hot')
 
     if show_fig:
         plt.show()
