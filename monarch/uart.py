@@ -1,6 +1,7 @@
 from serial import Serial
 import time 
 from bitstring import BitArray
+import numpy as np
 
 class UART:
 
@@ -13,7 +14,7 @@ class UART:
 
         # Model Parameters - will be extracted from the PhaseSpace object.
         self.dims = 2
-        self.scale_factor = 1.0
+        self.scale_factor = 2.0 ** 18
 
         # Receive parameters
         self.bytes_per_dim = 3 # Bit depth of 24 for each dimension
@@ -46,13 +47,17 @@ class UART:
         Used for evaluating the arithmetic pipeline before
         control and programming logic is added.
         """
+        
+        output_data = np.zeros((timesteps, self.dims))
 
-        output_data = []
         for i in range(timesteps):
             # Write two bytes of random data to the device to trigger a timestep
             self.serial_link.write(bytes(2))
 
-            output_data.append(self.receive_data())
+            output_data[i] = self.receive_data()
+
+            if i % 100 == 0:
+                print("MONArch: Timestep {}".format(i))
 
         return output_data
 
@@ -60,7 +65,7 @@ class UART:
         """Reads the correct number of bytes from the port for one timestep.
         """
 
-        state_vec = [] 
+        state_vec = []
 
         rx_bytes = self.reader.readline(self.bytes_to_rx)
         

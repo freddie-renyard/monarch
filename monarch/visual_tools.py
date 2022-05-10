@@ -1,9 +1,11 @@
+from cmath import phase
+from unicodedata import name
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import colors
 from math import log10, log2
 
-def plot_2d_phase_space(phase_object, name="", show_arrows=True):
+def plot_2d_phase_space(phase_object, name="", show_arrows=True, show_fig=False):
     """Plots a 2D phase diagram for a given PhaseSpace object and shows
     the output as a quiver plot superimposed on a image plot of the total
     gradient vector magnitude.
@@ -13,8 +15,8 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True):
         raise ValueError("Dimensionality of the input PhaseSpace Object is not 2.")
 
     # Compute the magnitude of each vector.
-    x_deltas = np.rot90(phase_object.phase_space[:, :, 0])
-    y_deltas = np.rot90(phase_object.phase_space[:, :, 1])
+    x_deltas = phase_object.phase_space[:, :, 0]
+    y_deltas = phase_object.phase_space[:, :, 1]
     magnitudes = np.sqrt((x_deltas**2 + y_deltas**2))
 
     skip = phase_object.resolution // 32
@@ -28,17 +30,19 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True):
         plot_name += " of " + name
 
     plt.title(plot_name)
-    plt.imshow(magnitudes)
+    plt.imshow(magnitudes, cmap='bwr')
     if show_arrows:
         plt.quiver(x[::skip,::skip], y[::skip,::skip],
-                np.rot90(phase_object.phase_space[::skip,::skip, 0]),
-                np.rot90(phase_object.phase_space[::skip,::skip, 1]),
+                phase_object.phase_space[::skip,::skip, 1],
+                -phase_object.phase_space[::skip,::skip, 0],
                 color='r',
                 scale=7
         )
     
     plt.axis('off')
-    plt.show()
+    
+    if show_fig: 
+        plt.show()
 
 def plot_3d_phase_space(phase_object, name=""):
     """Plots a 3D quiver plot which corresponds to the phase space
@@ -138,3 +142,17 @@ def plot_histogram(phase_object, bins=100):
     plt.bar(bin_edges[:-1], histogram, width=bar_width, align='edge')
     plt.title('Histogram of Phase Space Values. Dynamic range: {} bits'.format(int(dyn_range)))
     plt.show()
+
+def plot_2d_simulation(sim_data, phase_space, show_fig=True):
+
+    plot_2d_phase_space(phase_space, name="Simulation Data")
+
+    scale_factor = phase_space.resolution / phase_space.dim_length
+
+    x = sim_data[:,0]*scale_factor
+    y = sim_data[:,1]*scale_factor
+    
+    plt.plot(x, y, color='pink')
+
+    if show_fig:
+        plt.show()

@@ -1,7 +1,11 @@
+from cmath import phase
 from matplotlib import pyplot as plt
 from monarch.monarch_objects import PhaseSpace
-from monarch.visual_tools import plot_2d_components, plot_2d_phase_space, plot_histogram
+from monarch.visual_tools import plot_2d_components, plot_2d_phase_space, plot_histogram, plot_2d_simulation
 from monarch.uart import UART
+
+from matplotlib import pyplot as plt
+import numpy as np
 
 # A model of a calcium-induced calcium release model in cells, which
 # accurately models calcium ion oscillations in the cytosol of cells.
@@ -42,14 +46,17 @@ ode = (
 phase_space = PhaseSpace(
     ode_system = ode,
     resolution = 64,
-    max_limit = 32,
+    max_limit = 32, 
     dt = 0.001,
-    four_quadrant = False
+    four_quadrant = False,
+    verbose = False
 )
 
-#plot_histogram(phase_space)
-#plot_2d_phase_space(phase_space)
-#plot_2d_components(phase_space)
+plot_histogram(phase_space)
+plot_2d_phase_space(phase_space)
+plot_2d_components(phase_space)
 
 fpga = UART()
-print(fpga.primary_eval(timesteps=10))
+output_state = fpga.primary_eval(timesteps=100)
+
+plot_2d_simulation(output_state, phase_space)

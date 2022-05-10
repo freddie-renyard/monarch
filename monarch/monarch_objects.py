@@ -18,7 +18,12 @@ class PhaseSpace:
         # A tuple of lambda functions which describe the system to be modelled.
         self.ode_system = ode_system
         self.dimensions = len(ode_system)
-
+        
+        if four_quadrant:
+            self.dim_length = max_limit * 2
+        else:
+            self.dim_length = max_limit
+        
         self.resolution = resolution
         self.space_shape = [resolution] * self.dimensions
     
@@ -64,8 +69,8 @@ class PhaseSpace:
         self.phase_space *= dt
 
         # Compile the k-means pointer space and the associated means.
-        self.k = 2 ** 8
-        self.pointer_space, self.pointer_means = self.k_means_split(self.k, plot_verbose=False)
+        self.k = 2 ** 10
+        self.pointer_space, self.pointer_means = self.k_means_split(self.k, plot_verbose=verbose)
 
         # Compile and display a recontructed phase space from the 
         # k-means data, and compute the RMSE.
@@ -174,7 +179,7 @@ class PhaseSpace:
             binary = str(BitArray(
                     uint=ptr, 
                     length=ptr_depth
-                    ).hex
+                    ).bin
                 )
             ptr_bins.append(binary)
         
