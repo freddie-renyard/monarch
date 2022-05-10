@@ -174,7 +174,7 @@ class PhaseSpace:
             for component in bin_lst:
                     file.write((component + " \n"))
     
-    def k_means_split(self, k, plot_verbose=False):
+    def k_means_split(self, k):
         """Split a phase space of arbitrary dimesions into K vectors.
         Return the vectors and an associated pointer phase space as
         numpy arrays.
@@ -215,24 +215,5 @@ class PhaseSpace:
 
         # Reshape the identifiers into the orginal tensor shape.
         id_struct = np.reshape(id_clusters, space_shape[:-1])
-
-        if plot_verbose and self.dimensions == 2:
-
-            plt.title("")
-            plt.scatter(vectors[:, 0], vectors[:, 1], c = id_clusters, cmap='rainbow')
-
-            plt.subplot(1,3,1)
-            plt.title("K-means Clustering \nNormalised Phase Space")
-            plt.imshow(id_struct, cmap='gist_rainbow')
-
-            plt.subplot(1,3,2)
-            plt.title("Vector components for X")
-            plt.imshow(self.phase_space[:,:,0])
-
-            plt.subplot(1,3,3)
-            plt.title("Vector components for Y")
-            plt.imshow(self.phase_space[:,:,1])
-
-            plt.show()
 
         return id_struct, means
