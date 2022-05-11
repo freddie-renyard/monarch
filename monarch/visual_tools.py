@@ -37,7 +37,7 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True, show_fig=False)
                 plot_space_x[::skip,::skip],
                 plot_space_y[::skip,::skip],
                 color='r',
-                scale=0.1
+                scale=1
         )
     
     plt.axis('off')
