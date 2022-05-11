@@ -92,6 +92,19 @@ class PhaseSpace:
                 vec_lst = self.compile_vecs_to_bin(self.pointer_means[:, i])
                 self.save_to_file(vec_lst, "vec_components_dim_{}".format(i))
 
+        else:
+            # Compile the uncompressed vectors.
+            for i in range(self.dimensions):
+                if four_quadrant:
+                    comp_vecs = self.compile_four_quad_pointers(self.phase_space[..., i])
+                else:   
+                    comp_vecs = self.phase_space[..., i].flatten()
+                
+                bin_vecs = self.compile_vecs_to_bin(comp_vecs)
+                self.save_to_file(bin_vecs, "vec_components_dim_{}".format(i))
+
+
+
     def increment_addr(self, index_lst):
         
         for i in range(len(index_lst)):
@@ -207,7 +220,7 @@ class PhaseSpace:
             else:
                 return reorder_elements(reord_arr, bin_linspace, dimension+1, max_dim)
 
-        return reorder_elements(pointer_space.flatten(), bin_linspace, 0, max_dim=self.dimensions).astype("int")
+        return reorder_elements(pointer_space.flatten(), bin_linspace, 0, max_dim=self.dimensions)
 
     def compile_vecs_to_bin(self, vec_lst):
         """Compile a 1D list of vectors to a list of binary strings.
@@ -282,3 +295,20 @@ class PhaseSpace:
         id_struct = np.reshape(id_clusters, space_shape[:-1])
 
         return id_struct, means
+
+    def run_simulation(self, init_state, timesteps):
+        """Run a simulation of the system in Python.
+        Currently uses Euler's method.
+        """
+        
+        sim_shape = [timesteps, self.dimensions]
+        sim_data = np.zeros(sim_shape)
+
+        sim_data[0] = init_state
+
+        for i in range(1, timesteps):
+            for d in range(self.dimensions):
+                sim_data[i][d] = sim_data[i-1][d] + self.dt * self.ode_system[d](*sim_data[i-1])
+            if i % 400:
+                print("Python Timestep: {}".format(i))
+        return sim_data

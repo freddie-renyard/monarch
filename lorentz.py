@@ -1,7 +1,7 @@
+from time import time
 from unicodedata import name
 from unittest import result
 
-from matplotlib.pyplot import plot
 from monarch.monarch_objects import PhaseSpace
 from monarch.visual_tools import plot_2d_phase_space, plot_3d_phase_space, plot_histogram
 from monarch.uart import UART
@@ -11,7 +11,7 @@ import numpy as np
 
 # Define the Lorentz attractor.
 sigma = 10
-rho = 50
+rho = 28
 beta = 8/3
 
 ode = (
@@ -24,17 +24,19 @@ phase_space = PhaseSpace(
     ode_system = ode,
     dt = 0.001,
     resolution = 32,
-    max_limit = 32,
+    max_limit = 64,
     four_quadrant = True,
     compress_space = False
 )
 
 #plot_histogram(phase_space)
 
-fpga = UART()
-output_data = fpga.primary_eval(timesteps=2000)
+fpga = UART(phase_space)
+output_data = fpga.primary_eval(timesteps=100) 
+test_data = phase_space.run_simulation([2,2,2],timesteps=100)
 print(output_data)
 
 ax = plt.axes(projection='3d')
 ax.plot3D(output_data[:, 0], output_data[:, 1], output_data[:, 2], 'gray')
+ax.plot3D(test_data[:, 0], test_data[:, 1], test_data[:, 2], 'blue')
 plt.show()

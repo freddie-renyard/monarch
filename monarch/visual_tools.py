@@ -144,7 +144,7 @@ def plot_histogram(phase_object, bins=100):
     plt.title('Histogram of Phase Space Values. Dynamic range: {} bits'.format(int(dyn_range)))
     plt.show()
 
-def plot_2d_simulation(sim_data, phase_space, show_fig=True):
+def plot_2d_simulation(sim_data, test_data, phase_space, show_fig=True):
 
     plot_2d_phase_space(phase_space, name="Simulation Data")
 
@@ -157,8 +157,12 @@ def plot_2d_simulation(sim_data, phase_space, show_fig=True):
 
     x = sim_data[:,0]*scale_factor + offset
     y = sim_data[:,1]*scale_factor + offset
-    
     plt.plot(x, y, color='#29FF22')
+
+    if test_data is not None:
+        x = test_data[:,0]*scale_factor + offset
+        y = test_data[:,1]*scale_factor + offset
+        plt.plot(x, y, color='gray')
 
     if show_fig:
         plt.show()

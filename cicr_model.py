@@ -1,5 +1,6 @@
 from cmath import phase
 from matplotlib import pyplot as plt
+from monarch.eval_tools import compute_rmse
 from monarch.monarch_objects import PhaseSpace
 from monarch.visual_tools import plot_2d_components, plot_2d_phase_space, plot_histogram, plot_2d_simulation, plot_reconstructed_space
 from monarch.uart import UART
@@ -45,10 +46,11 @@ ode = (
 
 phase_space = PhaseSpace(
     ode_system = ode,
-    resolution = 64,
+    resolution = 128,
     max_limit = 32, 
     dt = 0.001,
-    four_quadrant = False
+    four_quadrant = False,
+    compress_space= False
 )
 
 #plot_histogram(phase_space)
@@ -56,9 +58,11 @@ phase_space = PhaseSpace(
 #plot_2d_components(phase_space)
 
 fpga = UART(phase_space)
-output_state = fpga.primary_eval(timesteps=50000)
+output_state = fpga.primary_eval(timesteps=10000)
+test_data = phase_space.run_simulation([16,16], timesteps=10000)
+print(compute_rmse(output_state, test_data))
 
-plot_2d_simulation(output_state, phase_space)
+plot_2d_simulation(output_state, test_data, phase_space)
 
 plt.plot(output_state[:, 1])
 plt.show()
