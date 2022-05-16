@@ -58,14 +58,8 @@ phase_space = PhaseSpace(
 #plot_2d_components(phase_space)
 
 fpga = UART(phase_space)
-output_state = fpga.primary_eval(timesteps=10000)
-test_data = phase_space.run_simulation([16,16], timesteps=10000)
-print(compute_rmse(output_state, test_data))
+output_state = fpga.primary_eval(timesteps=100)
+#test_data = phase_space.run_simulation([16,16], timesteps=1000)
+#print(compute_rmse(output_state, test_data))
 
-plot_2d_simulation(output_state, test_data, phase_space)
-
-plt.plot(output_state[:, 1])
-plt.show()
-
-plt.plot(output_state[:, 0])
-plt.show()
+plot_2d_simulation(output_state, None, phase_space, name = "Calcium-Induced Calcium Release (CICR) Model Simulation")

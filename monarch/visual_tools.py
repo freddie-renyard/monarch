@@ -37,11 +37,9 @@ def plot_2d_phase_space(phase_object, name="", show_arrows=True, show_fig=False)
                 plot_space_x[::skip,::skip],
                 plot_space_y[::skip,::skip],
                 color='r',
-                scale=1
+                scale=7
         )
-    
-    plt.axis('off')
-    
+
     if show_fig: 
         plt.show()
 
@@ -144,9 +142,9 @@ def plot_histogram(phase_object, bins=100):
     plt.title('Histogram of Phase Space Values. Dynamic range: {} bits'.format(int(dyn_range)))
     plt.show()
 
-def plot_2d_simulation(sim_data, test_data, phase_space, show_fig=True):
+def plot_2d_simulation(sim_data, test_data, phase_space, name="", show_fig=True):
 
-    plot_2d_phase_space(phase_space, name="Simulation Data")
+    plot_2d_phase_space(phase_space, name="",show_arrows=False)
 
     scale_factor = phase_space.resolution / phase_space.dim_length
 
@@ -158,6 +156,25 @@ def plot_2d_simulation(sim_data, test_data, phase_space, show_fig=True):
     x = sim_data[:,0]*scale_factor + offset
     y = sim_data[:,1]*scale_factor + offset
     plt.plot(x, y, color='#29FF22')
+    plt.title(name)
+    plt.legend(["FPGA data"])
+
+    plt.xlabel("Membrane Potential (mV)")
+    plt.ylabel("Recovery Variable")
+
+    #plt.yticks(range(0, 128, 16), [float(x) for x in range(0, 32, 4)])
+    #plt.yticks(range(0, 128, 16), [float(x) for x in range(0, 32, 4)])
+
+    res = phase_space.resolution
+    if phase_space.four_quadrant:
+        dim = phase_space.dim_length // 2
+    else:
+        dim = phase_space.dim_length
+
+    scale = 2
+
+    plt.yticks(range(0, res, res // scale), [float(x) for x in range(0, dim, dim // scale)])
+    plt.xticks(range(0, res, res // scale), [float(x) for x in range(0, dim, dim // scale)])
 
     if test_data is not None:
         x = test_data[:,0]*scale_factor + offset
@@ -191,14 +208,12 @@ def plot_reconstructed_space(phase_space, show_fig=True):
     mse_map = np.sum(squares, axis=2)
 
     grad_field_compressed = np.sqrt((reconstruct_space[:,:,0]**2 + reconstruct_space[:,:,1]**2))
-    grad_field_compressed = np.rot90(grad_field_compressed)
 
     plt.subplot(1,3,1)
     plt.title("Compressed Phase Space")
     plt.imshow(grad_field_compressed, cmap='seismic')
 
     grad_field = np.sqrt((phase_space.phase_space[:,:,0]**2 + phase_space.phase_space[:,:,1]**2))
-    grad_field = np.rot90(grad_field)
 
     plt.subplot(1,3,2)
     plt.title("Original Phase Space")
