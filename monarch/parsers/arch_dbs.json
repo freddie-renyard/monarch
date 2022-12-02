@@ -1,0 +1,25 @@
+{
+    "description": "This database contains architecture parameters for the pipelined MonArch architecture.",
+    "opcodes": {
+        "mult": {
+            "block_name": "MULTIPLY",
+            "delay": 2,
+            "precedence": false  
+        },
+        "add": {
+            "block_name": "ADD",
+            "delay": 1,
+            "precedence": false
+        },
+        "sub": {
+            "block_name": "SUBTRACT",
+            "delay": 1,
+            "precedence": true
+        },
+        "div": {
+            "block_name": "DIVIDE",
+            "delay": 4,
+            "precedence": true
+        }
+    }
+}
