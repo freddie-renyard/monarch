@@ -274,13 +274,28 @@ def optimise_cfg(cfg, mode=""):
             cfg['inputs'][i] = item
             return cfg
         
-    return None          
+    return None     
+
+def modify_variable(cfg, var_str, new_var_str):
+    # Finds a variable by string name and substitutes it with a new symbol.     
+    
+    for i, input_node in enumerate(cfg['inputs']):
+        if type(input_node) != dict:
+            # Terminal input symbol node found.
+            if str(input_node) == var_str:
+                cfg['inputs'][i] = Symbol(new_var_str)
+        else:
+            cfg['inputs'][i] = modify_variable(cfg['inputs'][i], var_str, new_var_str)
+
+    return cfg
 
 def eq_to_cfg(eq): 
 
     equations = extract_equality_expr(eq)
-    
+
+    variables = []
     eq_system = []
+    
     for lhs, rhs in equations:
         eq_symb = sympy.sympify(rhs)
         
@@ -305,14 +320,29 @@ def eq_to_cfg(eq):
             raise Exception("MONARCH - CFG contains unsupported operations.")
 
         variable = verify_differential(lhs)
+        variables.append(variable)
+        eq_system.append(cfg)
 
-        # TODO Eulerise the equations before doing step below. Rename variables to *_pre and *_post
-        # to reflect digitisation of the ODE.
+    # Rename variables to *_pre to reflect digitisation of the ODE.
+    for i, eq in enumerate(eq_system):
+        for var in variables:
+            eq_system[i] = modify_variable(eq, str(var), str(var) + "_pre")
 
-        eq_system.append({
-            "cfg": cfg,
-            "variable": variable
-        })
-
-    for eq in eq_system:
-        print(eq)
+    # Add multiplication by dt to each tree to perform Euler's method.
+    for i, eq in enumerate(eq_system):
+        eq_system[i] = {
+            "op": "mult",
+            "inputs": [
+                eq,
+                Symbol("dt")
+            ]
+        }
+    
+    # Add top level wrapper to indicate output (root) node of the tree.
+    for i, eq in enumerate(eq_system):
+        eq_system[i] = {
+            "root": Symbol(str(variables[i]) + "_post"),
+            "cfg": eq
+        }
+    
+    return eq_system
