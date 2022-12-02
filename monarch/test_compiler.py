@@ -1,4 +1,5 @@
 from parsers.equation_parse import eq_to_cfg
+from parsers.cfg_compiler import cfg_to_pipeline
 
 if __name__ == "__main__":
 
@@ -20,4 +21,5 @@ if __name__ == "__main__":
     # 3. pipeline_to_img - this converts the pipeline to hardware files, ready for verilog synthesis
     #   - .vh and .mem files
 
-    eq_to_cfg(test_equ)
+    compiled_cfg = eq_to_cfg(test_equ)
+    pipelined_cfg = cfg_to_pipeline(compiled_cfg)

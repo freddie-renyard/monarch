@@ -172,10 +172,10 @@ def cleanup_cfg(cfg):
     # sympy operations into monarch opcodes.
     # TODO combine the recursive CFG function cores into one, as a lot
     # of this code is duplicated below in the CFG optimisation function.
-
+    
     if type(cfg) != dict:
         # We've reached a terminal node aka an atomic.
-        return None
+        return cfg
 
     if type(cfg['op']) != str:
         # This is a sympy operation.
@@ -329,15 +329,24 @@ def eq_to_cfg(eq):
             eq_system[i] = modify_variable(eq, str(var), str(var) + "_pre")
 
     # Add multiplication by dt to each tree to perform Euler's method.
-    for i, eq in enumerate(eq_system):
+    for i in range(len(eq_system)):
+
         eq_system[i] = {
             "op": "mult",
             "inputs": [
-                eq,
+                eq_system[i],
                 Symbol("dt")
             ]
         }
-    
+
+        eq_system[i] = {
+            "op": "add",
+            "inputs": [
+                eq_system[i],
+                Symbol(str(variables[i]) + "_pre")
+            ]
+        }
+
     # Add top level wrapper to indicate output (root) node of the tree.
     for i, eq in enumerate(eq_system):
         eq_system[i] = {
