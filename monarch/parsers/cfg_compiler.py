@@ -1,6 +1,7 @@
 import json
 import os
 import numpy as np
+from matplotlib import pyplot as plt
 
 def get_symbols(cfg):
     
@@ -46,15 +47,11 @@ def get_longest_path(cfg, dbs, depth=0):
    # Add the length of the longest branch to the current node's delay. 
     return max_len + dbs[cfg['op']]['delay']
 
-def build_conn_mat(cfg, source_nodes, sink_nodes, conn_mats=None):
+def build_conn_mat(cfg, source_nodes, sink_nodes, conn_mat=None):
 
     # Construct the connectivity matrices on entry function call.
-    if conn_mats is None:
-        conn_mats = {
-            "conn": np.zeros([len(source_nodes), len(sink_nodes)]),
-            "delay": np.zeros([len(source_nodes), len(sink_nodes)])
-        }
-
+    if conn_mat is None:
+        conn_mat = np.zeros([len(source_nodes), len(sink_nodes)])
     # Construct the matrices from the top (root) node of the graph down.
     sink_i = sink_nodes.index(cfg['op']) # TODO add duplicate checking to input lists.
     source_is = []
@@ -64,16 +61,90 @@ def build_conn_mat(cfg, source_nodes, sink_nodes, conn_mats=None):
             node_i = source_nodes.index(input_node['op'])
 
             # Recursively repeat to build the connectivity matrix.
-            conn_mats = build_conn_mat(input_node, source_nodes, sink_nodes, conn_mats=conn_mats)
+            conn_mat = build_conn_mat(input_node, source_nodes, sink_nodes, conn_mat=conn_mat)
         else:
             node_i = source_nodes.index(input_node)
         source_is.append(node_i)
     
     # Add the computed graph indices into the connectivity matrix
     for i, source_i in enumerate(source_is):
-        conn_mats['conn'][source_i, sink_i] = i + 1
+        conn_mat[source_i, sink_i] = i + 1
 
-    return conn_mats
+    return conn_mat
+
+def build_delay_mat(cfg, source_nodes, sink_nodes, arch_dbs, dly_mat=None):
+    # Construct the pipeline delay matrix. 
+
+    # Construct the matrix on entry function call.
+    if dly_mat is None:
+        dly_mat = np.zeros([len(source_nodes), len(sink_nodes)])
+
+    opcode = cfg['op'].split("_")[0]
+    inherent_dly = arch_dbs[opcode]['delay']
+
+    branch_dlys = []
+    sink_i = sink_nodes.index(cfg['op']) # TODO add duplicate checking to input lists.
+    source_is = []
+    for input_node in cfg['inputs']:
+        if type(input_node) == dict:
+            # The node is a subtree, so the delay must be computed.
+            node_i = source_nodes.index(input_node['op'])
+            dly_mat, branch_delay = build_delay_mat(
+                input_node, 
+                source_nodes, 
+                sink_nodes,
+                arch_dbs,
+                dly_mat=dly_mat
+            )
+        else:  
+            # The node is an input, so nodal delay is 0.  
+            node_i = source_nodes.index(input_node)         
+            branch_delay = 0
+        source_is.append(node_i)
+        branch_dlys.append(branch_delay)
+
+    unbalanced = branch_dlys.count(branch_dlys[0]) != len(branch_dlys)
+    if unbalanced:
+        # Get the index of the unbalanced path. TODO only works for binary trees.
+        low_i = branch_dlys.index(min(branch_dlys))
+        dly_mat[source_is[low_i], sink_i] = max(branch_dlys) - min(branch_dlys)
+        total_dly = inherent_dly + max(branch_dlys)
+    else:
+        total_dly = inherent_dly + branch_dlys[0]
+    
+    return dly_mat, total_dly
+
+def stringify_lst(lst):
+
+    for i, el in enumerate(lst):
+        if type(el) != str:
+            lst[i] = str(el)
+
+    return lst
+
+def plot_mat(mats, source_nodes, sink_nodes, mat_titles=[]):
+
+    # stringify source and sink nodes
+    source_nodes = stringify_lst(source_nodes)
+    sink_nodes = stringify_lst(sink_nodes)
+
+    fig, axs = plt.subplots(1, 2)
+    for val, (mat, mat_title) in enumerate(zip(mats, mat_titles)):
+        
+        axs[val].matshow(mat, interpolation='nearest', cmap='seismic')
+        axs[val].set_title(mat_title)
+
+        xaxis = np.arange(len(sink_nodes))
+        yaxis = np.arange(len(source_nodes))
+        axs[val].set_xticks(xaxis)
+        axs[val].set_yticks(yaxis)
+        axs[val].set_xticklabels(sink_nodes)
+        axs[val].set_yticklabels(source_nodes)
+
+        for (i, j), z in np.ndenumerate(mat):
+            axs[val].text(j, i, '{}'.format(int(z)), ha='center', va='center')
+
+    plt.show()
 
 def modify_ops(cfg, id=0):
 
@@ -132,21 +203,15 @@ def cfg_to_mats(cfg, dbs):
 
     # Build flow up from the deepest node in the graph,
     # where both nodal inputs are symbols.
-    print(cfg)
-    print(source_nodes, sink_nodes)
-    conn_mats = build_conn_mat(cfg, source_nodes, sink_nodes)
+    conn_mat = build_conn_mat(cfg, source_nodes, sink_nodes)
+    dly_mat, _ = build_delay_mat(cfg, source_nodes, sink_nodes, dbs)
 
     # Add the output root node onto the connectivity matrices
     root_i = sink_nodes.index('root')
     source_i = source_nodes.index(cfg['op']) # Final CFG operation
-    conn_mats['conn'][source_i, root_i] = 1
+    conn_mat[source_i, root_i] = 1
 
-    print("CONN + PRECEDENCE:")
-    print(conn_mats['conn'], end="\n\n")
-    print("DELAY:")
-    print(conn_mats['delay'], end="\n\n")
-    
-    exit()
+    plot_mat([conn_mat, dly_mat], source_nodes, sink_nodes, ['Connectivity', 'Delay'])
 
 def cfg_to_pipeline(eq_system):
 
