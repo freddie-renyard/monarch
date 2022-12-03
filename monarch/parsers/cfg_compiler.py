@@ -1,5 +1,6 @@
 import json
 import os
+from parsers.hardware_objs import GraphUnit
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -153,12 +154,15 @@ def modify_ops(cfg, id=0):
 
     cfg['op'] += "_{}".format(id)
 
+    max_id = 0
     for i, input_node in enumerate(cfg['inputs']):
         if type(input_node) == dict:
             id += 1
-            cfg['inputs'][i] = modify_ops(input_node, id=id)
+            cfg['inputs'][i], max_id = modify_ops(input_node, id=id)
 
-    return cfg
+    if id > max_id:
+        max_id = id
+    return cfg, max_id
 
 def extract_source_nodes(cfg):
 
@@ -185,14 +189,14 @@ def extract_sink_nodes(cfg):
     
     return sink_nodes
 
-def cfg_to_mats(cfg, dbs):
+def cfg_to_mats(cfg, dbs, start_id):
 
     # Get all unique symbols in graph.
     symbols = get_symbols(cfg)
     symbols = list(set(symbols))
 
     # Append a unique identifier to every operator node in graph.
-    cfg = modify_ops(cfg)
+    cfg, max_id = modify_ops(cfg, id=start_id)
 
     # Get all the unique identifiers in the graph.
     source_nodes = extract_source_nodes(cfg)
@@ -211,7 +215,43 @@ def cfg_to_mats(cfg, dbs):
     source_i = source_nodes.index(cfg['op']) # Final CFG operation
     conn_mat[source_i, root_i] = 1
 
-    plot_mat([conn_mat, dly_mat], source_nodes, sink_nodes, ['Connectivity', 'Delay'])
+    return [conn_mat, dly_mat, source_nodes, sink_nodes], max_id + 1
+
+def paste_matrices(mat_1, mat_2):
+
+    mat_1_shape = np.shape(mat_1)
+    mat_2_shape = np.shape(mat_2)
+
+    new_mat = np.zeros(np.add(mat_1_shape, mat_2_shape))
+
+    # Paste first matrix
+    new_mat[0:mat_1_shape[0], 0:mat_1_shape[1]] = mat_1
+    new_mat[mat_1_shape[0]:, mat_1_shape[1]:] = mat_2
+    
+    return new_mat
+
+def combine_trees(system_data):
+    
+    conn_mat, dly_mat, source_nodes, sink_nodes = system_data[0]
+    
+    for dat in system_data[1:]:
+        sub_conn, sub_dly, sub_source_nodes, sub_sink_nodes = dat
+        
+        # Stage 1: combine all matrices and nodes into 1 matrix.
+        # TODO add output variable naming much eariler on in pipe
+        source_nodes += sub_source_nodes
+        sink_nodes += sub_sink_nodes
+        conn_mat = paste_matrices(conn_mat, sub_conn)
+        dly_mat = paste_matrices(dly_mat, sub_dly)
+
+    plot_mat([conn_mat, dly_mat], source_nodes, sink_nodes, mat_titles=['Connectivity', "delay"])
+
+    return GraphUnit(
+        conn_mat,
+        dly_mat,
+        source_nodes,
+        sink_nodes
+    )
 
 def cfg_to_pipeline(eq_system):
 
@@ -237,15 +277,21 @@ def cfg_to_pipeline(eq_system):
         if not valid:
             Exception("MONARCH - Unsupported operations present in compiled graphs")
 
-    """
-    # Stage 1: Find longest path in the total system graph.
-    longest_path = 0
-    for eq in eq_system:
-        path_len = get_longest_path(eq["cfg"], dbs)
-        print(path_len)
-    """
-
     # Stage 1: compile each individual graph to it's matrix representation.
+    start_id = 0
+    ret_vals = []
     for eq in eq_system:
-        conn_mat = cfg_to_mats(eq["cfg"], dbs) 
-        exit()
+        ret_data, start_id = cfg_to_mats(eq["cfg"], dbs, start_id)
+        ret_vals.append(ret_data)
+        # plot_mat(conn_mats, source_nodes, sink_nodes, ["Connectivity", "Delay"])
+
+    # Stage 2: Combine the matrices and associated nodes for the full system.
+    compiled_unit = combine_trees(ret_vals)
+
+    # Stage 3: Run cleanup/optimisation algorithms on the graph unit
+    compiled_unit.arch_dbs = dbs # Add the architecture spec to the unit
+    
+    # Combine same varibles
+    # Combine pre-delays
+
+    return compiled_unit
