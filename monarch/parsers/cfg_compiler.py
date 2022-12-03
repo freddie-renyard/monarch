@@ -115,38 +115,6 @@ def build_delay_mat(cfg, source_nodes, sink_nodes, arch_dbs, dly_mat=None):
     
     return dly_mat, total_dly
 
-def stringify_lst(lst):
-
-    for i, el in enumerate(lst):
-        if type(el) != str:
-            lst[i] = str(el)
-
-    return lst
-
-def plot_mat(mats, source_nodes, sink_nodes, mat_titles=[]):
-
-    # stringify source and sink nodes
-    source_nodes = stringify_lst(source_nodes)
-    sink_nodes = stringify_lst(sink_nodes)
-
-    fig, axs = plt.subplots(1, 2)
-    for val, (mat, mat_title) in enumerate(zip(mats, mat_titles)):
-        
-        axs[val].matshow(mat, interpolation='nearest', cmap='seismic')
-        axs[val].set_title(mat_title)
-
-        xaxis = np.arange(len(sink_nodes))
-        yaxis = np.arange(len(source_nodes))
-        axs[val].set_xticks(xaxis)
-        axs[val].set_yticks(yaxis)
-        axs[val].set_xticklabels(sink_nodes)
-        axs[val].set_yticklabels(source_nodes)
-
-        for (i, j), z in np.ndenumerate(mat):
-            axs[val].text(j, i, '{}'.format(int(z)), ha='center', va='center')
-
-    plt.show()
-
 def modify_ops(cfg, id=0):
 
     if type(cfg) != dict:
@@ -244,7 +212,7 @@ def combine_trees(system_data):
         conn_mat = paste_matrices(conn_mat, sub_conn)
         dly_mat = paste_matrices(dly_mat, sub_dly)
 
-    plot_mat([conn_mat, dly_mat], source_nodes, sink_nodes, mat_titles=['Connectivity', "delay"])
+    #plot_mat([conn_mat, dly_mat], source_nodes, sink_nodes, mat_titles=['Connectivity', "delay"])
 
     return GraphUnit(
         conn_mat,
@@ -290,7 +258,8 @@ def cfg_to_pipeline(eq_system):
     # Stage 3: Run cleanup/optimisation algorithms on the graph unit
     compiled_unit.arch_dbs = dbs # Add the architecture spec to the unit
 
-    # Combine same varibles
+    compiled_unit.combine_vars() # Combine same variables
+    compiled_unit.show_report()
     # Combine pre-delays
 
     return compiled_unit
