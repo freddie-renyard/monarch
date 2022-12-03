@@ -258,8 +258,8 @@ def cfg_to_pipeline(eq_system):
     # Stage 3: Run cleanup/optimisation algorithms on the graph unit
     compiled_unit.arch_dbs = dbs # Add the architecture spec to the unit
 
-    compiled_unit.combine_vars() # Combine same variables
+    compiled_unit.combine_vars()
+    compiled_unit.compute_predelay()
     compiled_unit.show_report()
-    # Combine pre-delays
 
     return compiled_unit

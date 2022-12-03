@@ -12,12 +12,14 @@ class GraphUnit:
 
         self.arch_dbs = None
 
+        self.predelays = []
+
     def show_report(self):
         plot_mat(
-            [self.conn_mat, self.dly_mat],
+            [self.conn_mat, np.expand_dims(self.predelays, axis=1), self.dly_mat],
             self.source_nodes,
             self.sink_nodes,
-            ["Connectivity", "Delay"]
+            ["Connectivity", "Predelays", "Delay"]
         )
 
     def combine_vars(self):
@@ -45,3 +47,20 @@ class GraphUnit:
                     break
 
             duplicates = len(self.source_nodes) > len(set(self.source_nodes)) 
+
+    def compute_predelay(self):
+        # Adds predelay registers to the unit.
+
+        self.predelays = np.zeros(np.shape(self.dly_mat)[0])
+        
+        for i, row in enumerate(self.dly_mat):
+            
+            non_zero_els = row[np.nonzero(row)]
+            if len(non_zero_els):
+                min_val = np.min(non_zero_els)
+                self.predelays[i] = min_val
+                
+                mask = np.zeros(np.shape(self.dly_mat)[1])
+                mask[np.nonzero(row)] = min_val
+
+                self.dly_mat[i, :] = np.subtract(self.dly_mat[i, :], mask)
