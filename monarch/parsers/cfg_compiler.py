@@ -1,5 +1,6 @@
 import json
 import os
+import numpy as np
 
 def get_symbols(cfg):
     
@@ -45,23 +46,34 @@ def get_longest_path(cfg, dbs, depth=0):
    # Add the length of the longest branch to the current node's delay. 
     return max_len + dbs[cfg['op']]['delay']
 
-def build_conn_mat(cfg):
+def build_conn_mat(cfg, source_nodes, sink_nodes, conn_mats=None):
 
-    deepest_op = True
+    # Construct the connectivity matrices on entry function call.
+    if conn_mats is None:
+        conn_mats = {
+            "conn": np.zeros([len(source_nodes), len(sink_nodes)]),
+            "delay": np.zeros([len(source_nodes), len(sink_nodes)])
+        }
+
+    # Construct the matrices from the top (root) node of the graph down.
+    sink_i = sink_nodes.index(cfg['op']) # TODO add duplicate checking to input lists.
+    source_is = []
     for input_node in cfg['inputs']:
         if type(input_node) == dict:
-            deepest_op = False
-            build_conn_mat(input_node)
-    
-    conn_mat = []
-    source_nodes = []
-    sink_nodes = []
-    if deepest_op:
-        source_nodes += cfg['inputs']
-        sink_nodes += [cfg['op']]
-        print(source_nodes, sink_nodes)
-        
+            # Subnode detected. Extract opcode as output.
+            node_i = source_nodes.index(input_node['op'])
 
+            # Recursively repeat to build the connectivity matrix.
+            conn_mats = build_conn_mat(input_node, source_nodes, sink_nodes, conn_mats=conn_mats)
+        else:
+            node_i = source_nodes.index(input_node)
+        source_is.append(node_i)
+    
+    # Add the computed graph indices into the connectivity matrix
+    for i, source_i in enumerate(source_is):
+        conn_mats['conn'][source_i, sink_i] = i + 1
+
+    return conn_mats
 
 def modify_ops(cfg, id=0):
 
@@ -113,11 +125,28 @@ def cfg_to_mats(cfg, dbs):
 
     # Get all the unique identifiers in the graph.
     source_nodes = extract_source_nodes(cfg)
-    sink_nodes = extract_sink_nodes(cfg) 
+    inout_nodes = extract_sink_nodes(cfg)
+
+    source_nodes = [*source_nodes, *inout_nodes]
+    sink_nodes = [*inout_nodes, 'root']
 
     # Build flow up from the deepest node in the graph,
     # where both nodal inputs are symbols.
-    conn_mat = build_conn_mat(cfg)
+    print(cfg)
+    print(source_nodes, sink_nodes)
+    conn_mats = build_conn_mat(cfg, source_nodes, sink_nodes)
+
+    # Add the output root node onto the connectivity matrices
+    root_i = sink_nodes.index('root')
+    source_i = source_nodes.index(cfg['op']) # Final CFG operation
+    conn_mats['conn'][source_i, root_i] = 1
+
+    print("CONN + PRECEDENCE:")
+    print(conn_mats['conn'], end="\n\n")
+    print("DELAY:")
+    print(conn_mats['delay'], end="\n\n")
+    
+    exit()
 
 def cfg_to_pipeline(eq_system):
 
