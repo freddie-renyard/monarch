@@ -189,7 +189,7 @@ def extract_sink_nodes(cfg):
     
     return sink_nodes
 
-def cfg_to_mats(cfg, dbs, start_id):
+def cfg_to_mats(cfg, output_var, dbs, start_id):
 
     # Get all unique symbols in graph.
     symbols = get_symbols(cfg)
@@ -203,7 +203,7 @@ def cfg_to_mats(cfg, dbs, start_id):
     inout_nodes = extract_sink_nodes(cfg)
 
     source_nodes = [*source_nodes, *inout_nodes]
-    sink_nodes = [*inout_nodes, 'root']
+    sink_nodes = [*inout_nodes, output_var]
 
     # Build flow up from the deepest node in the graph,
     # where both nodal inputs are symbols.
@@ -211,7 +211,7 @@ def cfg_to_mats(cfg, dbs, start_id):
     dly_mat, _ = build_delay_mat(cfg, source_nodes, sink_nodes, dbs)
 
     # Add the output root node onto the connectivity matrices
-    root_i = sink_nodes.index('root')
+    root_i = sink_nodes.index(output_var)
     source_i = source_nodes.index(cfg['op']) # Final CFG operation
     conn_mat[source_i, root_i] = 1
 
@@ -281,16 +281,15 @@ def cfg_to_pipeline(eq_system):
     start_id = 0
     ret_vals = []
     for eq in eq_system:
-        ret_data, start_id = cfg_to_mats(eq["cfg"], dbs, start_id)
+        ret_data, start_id = cfg_to_mats(eq["cfg"], eq['root'], dbs, start_id)
         ret_vals.append(ret_data)
-        # plot_mat(conn_mats, source_nodes, sink_nodes, ["Connectivity", "Delay"])
 
     # Stage 2: Combine the matrices and associated nodes for the full system.
     compiled_unit = combine_trees(ret_vals)
 
     # Stage 3: Run cleanup/optimisation algorithms on the graph unit
     compiled_unit.arch_dbs = dbs # Add the architecture spec to the unit
-    
+
     # Combine same varibles
     # Combine pre-delays
 
