@@ -1,5 +1,6 @@
 import numpy as np
 from parsers.report_utils import plot_mat
+from sympy import Symbol
 
 class GraphUnit:
 
@@ -64,3 +65,38 @@ class GraphUnit:
                 mask[np.nonzero(row)] = min_val
 
                 self.dly_mat[i, :] = np.subtract(self.dly_mat[i, :], mask)
+
+    def reorder_source_nodes(self):
+        # Reorder the source nodes by the architecture database.
+
+        symbols = [int(type(node) == str) for node in self.source_nodes]
+        symbols = np.array(symbols)
+
+        for i, op in enumerate(self.arch_dbs):
+            temp = np.array([int(str(node).find(op) > -1) for node in self.source_nodes])
+            temp *= 1 + i
+            symbols = np.add(symbols, temp)
+
+        sort_is = np.argsort(symbols)
+
+        self.source_nodes = np.array(self.source_nodes)[sort_is]
+        self.conn_mat = self.conn_mat[sort_is, :]
+        self.dly_mat = self.dly_mat[sort_is, :]
+
+    def reorder_sink_nodes(self):
+        # Reorder the sink nodes by the architecture database.
+        # TODO Combine with the code above.
+
+        symbols = [int(type(node) == str) for node in self.sink_nodes]
+        symbols = np.array(symbols)
+
+        for i, op in enumerate(self.arch_dbs):
+            temp = np.array([int(str(node).find(op) > -1) for node in self.sink_nodes])
+            temp *= 1 + i
+            symbols = np.add(symbols, temp)
+
+        sort_is = np.argsort(symbols)
+
+        self.sink_nodes = np.array(self.sink_nodes)[sort_is]
+        self.conn_mat = self.conn_mat[:, sort_is]
+        self.dly_mat = self.dly_mat[:, sort_is]

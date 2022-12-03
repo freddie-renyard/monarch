@@ -1,3 +1,4 @@
+from parsers.report_utils import report_utilisation
 from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
 
@@ -23,3 +24,5 @@ if __name__ == "__main__":
 
     compiled_cfg = eq_to_cfg(test_equ)
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
+
+    report_utilisation(pipelined_cfg)

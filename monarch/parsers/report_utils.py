@@ -37,4 +37,7 @@ def plot_mat(mats, source_nodes, sink_nodes, mat_titles=[]):
 
     plt.show()
 
-    
+def report_utilisation(unit):
+
+    for node in unit.arch_dbs:
+        print(node)

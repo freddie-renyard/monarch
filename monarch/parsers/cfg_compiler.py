@@ -259,7 +259,9 @@ def cfg_to_pipeline(eq_system):
     compiled_unit.arch_dbs = dbs # Add the architecture spec to the unit
 
     compiled_unit.combine_vars()
+    compiled_unit.reorder_source_nodes()
+    compiled_unit.reorder_sink_nodes()
     compiled_unit.compute_predelay()
-    compiled_unit.show_report()
+    # compiled_unit.show_report()
 
     return compiled_unit
