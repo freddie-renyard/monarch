@@ -12,7 +12,6 @@ class GraphUnit:
         self.sink_nodes = sink_nodes
 
         self.arch_dbs = None
-
         self.predelays = []
 
     def show_report(self):
@@ -100,3 +99,11 @@ class GraphUnit:
         self.sink_nodes = np.array(self.sink_nodes)[sort_is]
         self.conn_mat = self.conn_mat[:, sort_is]
         self.dly_mat = self.dly_mat[:, sort_is]
+
+    def compute_delay_regs(self):
+        total = int(np.sum(self.dly_mat))
+        total += int(np.sum(self.predelays))
+        return total
+
+    def compute_max_depth(self):
+        pass

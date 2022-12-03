@@ -250,7 +250,7 @@ def cfg_to_pipeline(eq_system):
     ret_vals = []
     for eq in eq_system:
         ret_data, start_id = cfg_to_mats(eq["cfg"], eq['root'], dbs, start_id)
-        ret_vals.append(ret_data)
+        ret_vals.append(ret_data)    
 
     # Stage 2: Combine the matrices and associated nodes for the full system.
     compiled_unit = combine_trees(ret_vals)
@@ -261,7 +261,9 @@ def cfg_to_pipeline(eq_system):
     compiled_unit.combine_vars()
     compiled_unit.reorder_source_nodes()
     compiled_unit.reorder_sink_nodes()
+
+    # TODO Compute the max pipeline depth of the total graph.
+
     compiled_unit.compute_predelay()
-    # compiled_unit.show_report()
 
     return compiled_unit

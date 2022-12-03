@@ -26,3 +26,4 @@ if __name__ == "__main__":
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 
     report_utilisation(pipelined_cfg)
+    pipelined_cfg.show_report()

@@ -39,5 +39,12 @@ def plot_mat(mats, source_nodes, sink_nodes, mat_titles=[]):
 
 def report_utilisation(unit):
 
-    for node in unit.arch_dbs:
-        print(node)
+    print("\nMONARCH - UTILISATION:")
+
+    for op in unit.arch_dbs:
+        blocks = [node for node in unit.source_nodes if type(node) == str]
+        blocks = [node for node in blocks if node.find(op) > -1]
+        print("\t{} : {} blocks".format(unit.arch_dbs[op]["block_name"], len(blocks)))
+
+    print("\tPipeline depth: {} registers".format(unit.compute_max_depth()))
+    print("\tTotal delay register count: {} registers\n".format(unit.compute_delay_regs()))
