@@ -1,6 +1,7 @@
 from parsers.report_utils import report_utilisation
 from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
+from simulators.simulators import pipeline_eumulator
 
 if __name__ == "__main__":
 
@@ -26,4 +27,22 @@ if __name__ == "__main__":
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 
     report_utilisation(pipelined_cfg)
-    pipelined_cfg.show_report()
+
+    #pipelined_cfg.show_report()
+
+    # Emulate the system
+
+    args = {
+        "b": 8.0/3.0,
+        "sigma": 10,
+        "rho": 28
+    }
+    init_state = [1,0,0]
+
+    pipeline_eumulator(
+        test_equ, 
+        pipelined_cfg, 
+        init_state, 
+        args,
+        sim_time=100
+    )
