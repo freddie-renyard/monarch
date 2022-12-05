@@ -31,13 +31,17 @@ if __name__ == "__main__":
     #pipelined_cfg.show_report()
 
     # Emulate the system
-
     args = {
         "b": 8.0/3.0,
         "sigma": 10,
         "rho": 28
     }
-    init_state = [1,0,0]
+
+    init_state = {
+        "x": 1,
+        "y": 1,
+        "z": 1
+    }
 
     pipeline_eumulator(
         test_equ, 

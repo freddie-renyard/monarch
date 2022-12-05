@@ -55,7 +55,7 @@ class GraphUnit:
         
         for i, row in enumerate(self.dly_mat):
             
-            non_zero_els = row[np.nonzero(row)]
+            non_zero_els = row[np.nonzero(self.conn_mat[i, :])]
             if len(non_zero_els):
                 min_val = np.min(non_zero_els)
                 self.predelays[i] = min_val
