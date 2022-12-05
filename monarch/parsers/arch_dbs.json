@@ -4,22 +4,26 @@
         "mult": {
             "block_name": "MULTIPLY",
             "delay": 2,
-            "precedence": false  
+            "precedence": false,
+            "op": "lambda a, b: a * b"
         },
         "add": {
             "block_name": "ADD",
             "delay": 1,
-            "precedence": false
+            "precedence": false,
+            "op": "lambda a, b: a + b"
         },
         "sub": {
             "block_name": "SUBTRACT",
             "delay": 1,
-            "precedence": true
+            "precedence": true,
+            "op": "lambda a, b: a - b"
         },
         "div": {
             "block_name": "DIVIDE",
             "delay": 4,
-            "precedence": true
+            "precedence": true,
+            "op": "lambda a, b: a / b"
         }
     }
 }

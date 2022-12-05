@@ -48,5 +48,5 @@ if __name__ == "__main__":
         pipelined_cfg, 
         init_state, 
         args,
-        sim_time=100
+        sim_time=5
     )

@@ -176,14 +176,14 @@ def cfg_to_mats(cfg, output_var, dbs, start_id):
     # Build flow up from the deepest node in the graph,
     # where both nodal inputs are symbols.
     conn_mat = build_conn_mat(cfg, source_nodes, sink_nodes)
-    dly_mat, _ = build_delay_mat(cfg, source_nodes, sink_nodes, dbs)
-
+    dly_mat, max_dly = build_delay_mat(cfg, source_nodes, sink_nodes, dbs)
+    
     # Add the output root node onto the connectivity matrices
     root_i = sink_nodes.index(output_var)
     source_i = source_nodes.index(cfg['op']) # Final CFG operation
     conn_mat[source_i, root_i] = 1
 
-    return [conn_mat, dly_mat, source_nodes, sink_nodes], max_id + 1
+    return [conn_mat, dly_mat, source_nodes, sink_nodes, max_dly], max_id + 1
 
 def paste_matrices(mat_1, mat_2):
 
@@ -200,10 +200,14 @@ def paste_matrices(mat_1, mat_2):
 
 def combine_trees(system_data):
     
-    conn_mat, dly_mat, source_nodes, sink_nodes = system_data[0]
-    
+    conn_mat, dly_mat, source_nodes, tmp, max_dly = system_data[0]
+    sink_nodes = tmp.copy() # Prevent linking the first equation to the concatenations below
+
     for dat in system_data[1:]:
-        sub_conn, sub_dly, sub_source_nodes, sub_sink_nodes = dat
+        sub_conn, sub_dly, sub_source_nodes, sub_sink_nodes, sub_max_dly = dat
+
+        if sub_max_dly > max_dly:
+            max_dly = sub_max_dly
         
         # Stage 1: combine all matrices and nodes into 1 matrix.
         # TODO add output variable naming much eariler on in pipe
@@ -212,8 +216,19 @@ def combine_trees(system_data):
         conn_mat = paste_matrices(conn_mat, sub_conn)
         dly_mat = paste_matrices(dly_mat, sub_dly)
 
-    #plot_mat([conn_mat, dly_mat], source_nodes, sink_nodes, mat_titles=['Connectivity', "delay"])
-
+    # Add output delay registers to equalise pipeline depth for each tree.
+    for dat in system_data:
+        _, _, _, sink_nodes_temp, tree_dly = dat
+        val = [x for x in sink_nodes_temp if "_post" in str(x)][0]
+        diff_from_max = max_dly - tree_dly
+        
+        for i, node in enumerate(sink_nodes):
+            if str(node) == str(val):
+                break
+        
+        input_node_i = list(conn_mat[:, i] > 0).index(True)
+        dly_mat[input_node_i, i] = diff_from_max
+        
     return GraphUnit(
         conn_mat,
         dly_mat,
@@ -265,5 +280,5 @@ def cfg_to_pipeline(eq_system):
     # TODO Compute the max pipeline depth of the total graph.
 
     compiled_unit.compute_predelay()
-    compiled_unit.show_report()
+
     return compiled_unit
