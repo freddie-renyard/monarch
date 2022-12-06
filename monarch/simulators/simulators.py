@@ -63,7 +63,6 @@ def extract_var_class(nodes, filter_str):
 def run_pipeline(unit, in_state, args, dt, verbose=False):
 
     args['dt'] = dt
-    input_nodes = extract_var_class(unit.source_nodes, '_pre')
 
     # Prepare the initial state vector.
     source_state = np.zeros((len(unit.source_nodes)))

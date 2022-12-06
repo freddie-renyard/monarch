@@ -3,29 +3,7 @@ from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
 from simulators.simulators import pipeline_eumulator
 
-if __name__ == "__main__":
-
-    
-    #test_equ = """
-    #dx/dt = sigma * (y - x)
-    #dy/dt = x * (rho - z) - y
-    #dz/dt = x * y - b * z
-    #"""
-
-    """
-    # Emulate the system
-    args = {
-        "b": 8.0/3.0,
-        "sigma": 10,
-        "rho": 28
-    }
-
-    init_state = {
-        "x": 1,
-        "y": 0,
-        "z": 0
-    }
-    """
+def oregonator_model():
 
     test_equ = """
     dx/dt = x * (1 - x) + f * ((q - x) / (q + x)) * y
@@ -43,14 +21,38 @@ if __name__ == "__main__":
         "f": 0.0001
     }
 
+    return test_equ, init_state, args
+
+def lorenz_attractor():
+
+    test_equ = """
+    dx/dt = sigma * (y - x)
+    dy/dt = x * (rho - z) - y
+    dz/dt = x * y - b * z
+    """
+    args = {
+        "b": 8.0/3.0,
+        "sigma": 10,
+        "rho": 28
+    }
+    init_state = {
+        "x": 1,
+        "y": 0,
+        "z": 0
+    }
+
+    return test_equ, args, init_state
+
+if __name__ == "__main__":
+
+    test_equ, args, init_state = lorenz_attractor()
+    
     compiled_cfg = eq_to_cfg(test_equ)
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 
     report_utilisation(pipelined_cfg)
 
     #pipelined_cfg.show_report()
-
-    
 
     pipeline_eumulator(
         test_equ, 
