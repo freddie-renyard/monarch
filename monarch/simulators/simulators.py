@@ -72,6 +72,9 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
         if '_pre' in str(node):
             source_state[i] = in_state[str(node)[:-4]]
             source_valid[i] = 1
+        elif '_const' in str(node):
+            source_state[i] = float(str(node)[:-6])
+            source_valid[i] = 1
         elif type(node) != str:
             source_state[i] = args[str(node)]
             source_valid[i] = 1
