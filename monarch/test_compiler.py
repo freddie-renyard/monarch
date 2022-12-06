@@ -43,10 +43,43 @@ def lorenz_attractor():
 
     return test_equ, args, init_state
 
+def cicr():
+
+    test_equ = """
+        dx/dt = z_0 - z_2 + z_3 + k_f * y - k * x + z_1 * b
+        dy/dt = z_2 - z_3 - k_f * y
+
+        n = 2
+        m = 2
+        p = 2
+        z_0 = 1
+        z_1 = 6
+        z_2 = v_m_2 * ((x ** n) / (k_2 ** n + x ** n))
+        z_3 = v_m_3 * ((y ** m) / (k_r ** m + y ** m)) * ((x ** p) / (k_a ** p + x ** p)) 
+    """
+
+    args = {
+        "v_m_2": 100.0,
+        "v_m_3": 700.0,
+        "k_2": 1.0,
+        "k_r": 15.0,
+        "k_a": 2.5,
+        "k_f": 0,
+        "k": 8.0,
+        "b": 1.0
+    }
+
+    init_state = {
+        "x": 16,
+        "y": 16
+    }
+
+    return test_equ, args, init_state
+
 if __name__ == "__main__":
 
     test_equ, args, init_state = lorenz_attractor()
-    
+
     compiled_cfg = eq_to_cfg(test_equ)
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 

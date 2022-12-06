@@ -2,8 +2,9 @@ from distutils.command.build import build
 from parsers.cfg_compiler import extract_source_nodes
 import opcode
 import sympy
-from sympy import core, S, Symbol
+from sympy import core, S, Symbol, Function, Lambda
 import json 
+from sympy.parsing.sympy_parser import parse_expr
 
 supported_ops_map = {
     "Mul": "mult",
@@ -15,6 +16,10 @@ def extract_equality_expr(eq):
 
     parts = eq.strip().split("\n")
     subparts = [x.split("=") for x in parts]
+    subparts = [x for x in subparts if len(x) > 1]
+    for i, subpart in enumerate(subparts):
+        subparts[i] = [x.strip() for x in subpart]
+
     return subparts
 
 def get_operation_name(op):
@@ -293,16 +298,41 @@ def modify_variable(cfg, var_str, new_var_str):
 def eq_to_cfg(eq): 
 
     equations = extract_equality_expr(eq)
-
     variables = []
     eq_system = []
-    
+
+    # Preprocess equations
+    system_eqs = []
+    aux_eqs = []
     for lhs, rhs in equations:
-        eq_symb = sympy.sympify(rhs)
+        if lhs.find('/dt') != -1:
+            # This equation is a system equation.
+            system_eqs.append([
+                lhs, 
+                sympy.sympify(rhs)
+            ])
+        else:
+            # This equation is an auxiliary equation to be substituted.
+            aux_eqs.append([
+                Symbol(lhs),
+                sympy.sympify(rhs)
+            ])
+    
+    for i, (_, rhs) in enumerate(system_eqs):
+
+        atoms = rhs.atoms(Symbol)
+        for var, lhs in aux_eqs:
+            if var in atoms:
+                rhs = rhs.subs(var, lhs)
+        
+        system_eqs[i][1] = rhs
+
+    for lhs, eq_symb in system_eqs:
         
         # Recursively build computational flow graph for each
         # equation.
         cfg = get_operation(eq_symb)
+        
         
         # Optimise the CFG for mode of operation.
         new_cfg = cfg
@@ -311,7 +341,7 @@ def eq_to_cfg(eq):
             cfg = new_cfg
             new_cfg = optimise_cfg(cfg, mode="digital-pipelined")
             opt_passes += 1
-
+        
         print("MONARCH: Optimisation complete. Cycles: {}".format(opt_passes-1))
         
         # Cleanup the graph by checking operations and substituting SymPy expressions
