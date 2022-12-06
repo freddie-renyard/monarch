@@ -3,6 +3,7 @@ import os
 from parsers.hardware_objs import GraphUnit
 import numpy as np
 from matplotlib import pyplot as plt
+from sympy import Symbol
 
 def get_symbols(cfg):
     
@@ -172,6 +173,11 @@ def cfg_to_mats(cfg, output_var, dbs, start_id):
 
     source_nodes = [*source_nodes, *inout_nodes]
     sink_nodes = [*inout_nodes, output_var]
+    print(source_nodes)
+    for i, node in enumerate(source_nodes):
+        if type(node) != str:
+            if node.is_number:
+                source_nodes[i] = Symbol(str(node) + "_const")
 
     # Build flow up from the deepest node in the graph,
     # where both nodal inputs are symbols.
@@ -182,7 +188,7 @@ def cfg_to_mats(cfg, output_var, dbs, start_id):
     root_i = sink_nodes.index(output_var)
     source_i = source_nodes.index(cfg['op']) # Final CFG operation
     conn_mat[source_i, root_i] = 1
-
+    
     return [conn_mat, dly_mat, source_nodes, sink_nodes, max_dly], max_id + 1
 
 def paste_matrices(mat_1, mat_2):

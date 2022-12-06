@@ -1,4 +1,5 @@
 from distutils.command.build import build
+from parsers.cfg_compiler import extract_source_nodes
 import opcode
 import sympy
 from sympy import core, S, Symbol
@@ -327,6 +328,13 @@ def eq_to_cfg(eq):
     for i, eq in enumerate(eq_system):
         for var in variables:
             eq_system[i] = modify_variable(eq, str(var), str(var) + "_pre")
+
+    # Rename numerical constants to *_const
+    for i, eq in enumerate(eq_system):
+        terminal_nodes = extract_source_nodes(eq)
+        for node in terminal_nodes:
+            if node.is_number:
+                eq_system[i] = modify_variable(eq, str(node), str(node) + "_const")
 
     # Add multiplication by dt to each tree to perform Euler's method.
     for i in range(len(eq_system)):
