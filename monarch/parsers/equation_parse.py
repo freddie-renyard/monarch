@@ -145,7 +145,7 @@ def construct_balanced_tree(input_args, opcode="", add_squarers=False):
             "op": opcode,
             "inputs": [
                 input_args[0],
-                construct_balanced_tree(input_args[1:], opcode)
+                construct_balanced_tree(input_args[1:], opcode, add_squarers=add_squarers)
             ]
         }
     elif len(input_args) == 2:
@@ -163,8 +163,8 @@ def construct_balanced_tree(input_args, opcode="", add_squarers=False):
         return {
             "op": opcode,
             "inputs": [
-                construct_balanced_tree(input_args[0:len(input_args)//2], opcode),
-                construct_balanced_tree(input_args[len(input_args)//2:], opcode),
+                construct_balanced_tree(input_args[0:len(input_args)//2], opcode, add_squarers=add_squarers),
+                construct_balanced_tree(input_args[len(input_args)//2:], opcode, add_squarers=add_squarers),
             ]
         }
 

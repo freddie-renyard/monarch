@@ -79,7 +79,7 @@ def cicr():
 def duplicate_test():
 
     test_equ = """
-        dx/dt = (x - y) ** 2
+        dx/dt = (x - y) ** 4
     """
 
     args = {
