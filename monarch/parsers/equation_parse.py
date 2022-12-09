@@ -1,4 +1,5 @@
 from distutils.command.build import build
+from email.mime import base
 from parsers.cfg_compiler import extract_source_nodes
 import opcode
 import sympy
@@ -135,7 +136,7 @@ def construct_binary_adder_tree(pos_args, neg_args):
         "inputs": [pos_tree, neg_tree]
     }
 
-def construct_balanced_tree(input_args, opcode=""):
+def construct_balanced_tree(input_args, opcode="", add_squarers=False):
     # Constructs a tree for a given operation which minimises edges 
     # and maximum depth of the graph.
 
@@ -148,10 +149,16 @@ def construct_balanced_tree(input_args, opcode=""):
             ]
         }
     elif len(input_args) == 2:
-        return {
-            "op": opcode,
-            "inputs": input_args
-        }
+        if add_squarers:
+            return {
+                "op": 'square',
+                "inputs": [input_args[0]]
+            }
+        else:
+            return {
+                "op": opcode,
+                "inputs": input_args
+            }
     else:
         return {
             "op": opcode,
@@ -160,6 +167,38 @@ def construct_balanced_tree(input_args, opcode=""):
                 construct_balanced_tree(input_args[len(input_args)//2:], opcode),
             ]
         }
+
+def check_power_op(cfg):
+
+    base_node = cfg['inputs'][0]
+    exp_node = cfg['inputs'][1]
+
+    # Check all valid power conditions and return the appropriate CFG.
+
+    # Operation: x^-1 -> 1/x
+    if type(exp_node) == type(S.NegativeOne):
+        return {
+            "op": "div",
+            "inputs": [
+                sympy.Integer(1), 
+                base_node
+            ]
+        }
+    
+    # Operation: x^n -> x * x * ... x
+    # Performs tree duplication, which is cleaned up after compilation by the connectivity matrix compiler
+    if ((type(base_node) == Symbol) or (type(base_node) == dict)) and type(exp_node) == sympy.Integer:
+        return construct_balanced_tree([base_node] * int(exp_node), "mult", add_squarers=True)
+
+    # Operation: n^x -> LUT(x)    
+    if (base_node.is_number) and ((type(exp_node) == Symbol) or type(base_node) == dict):
+        return {
+            "op": 'lut',
+            "fn": lambda x: int(base_node) ** x,
+            "inputs": [exp_node]
+        }
+
+    raise Exception("MONARCH - Illegal power operation detected - input operands are {} of type {}".format((base_node, exp_node), (type(base_node), type(exp_node))))
 
 def check_sympy_operation(op, check_str):
     if type(op) == str:
@@ -271,6 +310,13 @@ def optimise_cfg(cfg, mode=""):
             adder_tree = construct_binary_adder_tree(pos_input_nodes, neg_input_nodes)
             return adder_tree
 
+    # This checks for power operations, and expands the operation into either a multiplier tree 
+    # for x^n ops, transforms x^-1 into div(1, x) for SymPy division, or adds a LUT operation for n^x ops
+    if check_sympy_operation(cfg['op'], "Pow"):
+        ret_tree = check_power_op(cfg)
+        if ret_tree is not None:
+            return ret_tree
+    
     return_vals = []    
     for child in cfg['inputs']:
         return_vals.append(optimise_cfg(child, mode=mode))
@@ -333,7 +379,6 @@ def eq_to_cfg(eq):
         # equation.
         cfg = get_operation(eq_symb)
         
-        
         # Optimise the CFG for mode of operation.
         new_cfg = cfg
         opt_passes = 0
@@ -343,7 +388,7 @@ def eq_to_cfg(eq):
             opt_passes += 1
         
         print("MONARCH: Optimisation complete. Cycles: {}".format(opt_passes-1))
-        
+        print(cfg)
         # Cleanup the graph by checking operations and substituting SymPy expressions
         # for monarch opcodes.
         cfg = cleanup_cfg(cfg)

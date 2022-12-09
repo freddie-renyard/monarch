@@ -24,6 +24,18 @@
             "delay": 4,
             "precedence": true,
             "op": "lambda a, b: a / b"
+        },
+        "square": {
+            "block_name": "SQUARER",
+            "delay": 3,
+            "precedence": false,
+            "op": "lambda a: a ** 2"
+        },
+        "lut": {
+            "block_name": "LOOK_UP_TABLE",
+            "delay": 2,
+            "precedence": false,
+            "op": "None"
         }
     }
 }

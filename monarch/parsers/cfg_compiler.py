@@ -173,7 +173,7 @@ def cfg_to_mats(cfg, output_var, dbs, start_id):
 
     source_nodes = [*source_nodes, *inout_nodes]
     sink_nodes = [*inout_nodes, output_var]
-    print(source_nodes)
+
     for i, node in enumerate(source_nodes):
         if type(node) != str:
             if node.is_number:
@@ -244,27 +244,20 @@ def combine_trees(system_data):
 
 def cfg_to_pipeline(eq_system):
 
-    # Extract all graph input symbols (variables, constant-variables, and constants).
-    symbols = []
-    for eq in eq_system:
-        symbols += get_symbols(eq["cfg"])
-
-    input_set = set(symbols)
-
+    # Open architecture database.
     script_dir = os.path.dirname(__file__)
     rel_path = "arch_dbs.json"
     abs_file_path = os.path.join(script_dir, rel_path)
-
-    # Open architecture database.
+    
     with open(abs_file_path) as file:
         dbs = json.loads(file.read())
         dbs = dbs['opcodes']
-    
+
     # Verify that the graph contains only legal operations.
     for eq in eq_system:
         valid = verify_graph(eq["cfg"], dbs)
         if not valid:
-            Exception("MONARCH - Unsupported operations present in compiled graphs")
+            raise Exception("MONARCH - Unsupported operations present in compiled graphs")
 
     # Stage 1: compile each individual graph to it's matrix representation.
     start_id = 0
