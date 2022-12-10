@@ -139,11 +139,11 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
 
             in_args_vec = np.zeros((2))
             compute_result = False
+
             for addr in addrs:
                 if reg_mat[:, j][addr] == 0:
                     # The delay has expired. Move data from routing matrix into input operator buffer
                     # # in order of precedence.
-                    
                     in_args_vec[int(unit.conn_mat[:, j][addr])-1] = val_mat[:, j][addr]
                     compute_result = True
 
@@ -152,33 +152,56 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                     valid_mat[:, j][addr] = 0.0
                 elif reg_mat[:, j][addr] > 0:
                     reg_mat[:, j][addr] -= 1
-
-            # Catch the invalid result, where only one of two essential inputs to a binary node is valid
+            
+            
+            """
             if compute_result and len(addrs) == 1 and '_post' not in str(unit.sink_nodes[j]):
-                pass
+                # Catch the invalid result, where only one of two essential inputs to a binary node is valid
+                if 'square_' in str(unit.sink_nodes[j]):
+                    print('woop')
             else:
-                if compute_result:
+            """
+            node_str = str(unit.sink_nodes[j]).split('_')[0]
+            valid_req = True
+            output_req = False
+            if node_str in unit.arch_dbs.keys():
+                if unit.arch_dbs[node_str]['input_num'] != len(addrs):
+                    valid_req = False
+            else:
+                if len(addrs) == 1 and '_post' in str(unit.sink_nodes[j]):
+                    output_req = True            
+            if compute_result:
+                
+                if not valid_req:
+                    pass
+                else:
                     # Extract the computation in question.
-                    if compute_result and len(addrs) == 1:
+                    if output_req:
                         node_str = str(unit.sink_nodes[j])
-                        target_op = lambda a: a
+                        target_op = lambda a: a ** 2
                         target_delay = 0
                     else:
                         node_str = str(unit.sink_nodes[j]).split('_')[0]
                         target_op = unit.arch_dbs[node_str]['op']
                         target_delay = unit.arch_dbs[node_str]['delay']
+                        input_num = unit.arch_dbs[node_str]['input_num']
+
+                        if input_num == 1:
+                            in_args_vec = in_args_vec[:1]
 
                         # TODO add operation parsing to remove the eval expression below
-                        if target_op[:12] != "lambda a, b:" or len(target_op) > 20:
+                        if input_num == 1 and target_op[:9] != "lambda a:" or len(target_op) > 20:
                             raise Exception("MONARCH - Potentially unsafe operation detected")
+                        elif input_num == 2 and target_op[:12] != "lambda a, b:" or len(target_op) > 20:
+                            raise Exception("MONARCH - Potentially unsafe operation detected")
+                        
                         op_lambda = eval(target_op)
 
                     result = op_lambda(*in_args_vec)
 
                     if verbose:
                         print("{} produced {}, being delayed".format(str(unit.sink_nodes[j]), result))
-                        
-
+                
                     # Move the result into the operator registers.
                     val_vec[j] = result
                     valid_vec[j] = 1
@@ -187,7 +210,7 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                     # An output to an output node has been detected.
                     if type(unit.sink_nodes[j]) != str:
                         terminate = True
-                        
+        #input()
         if verbose:
             print("")
         
@@ -209,13 +232,14 @@ def emulate_graph_unit(unit, time, dt, init_state, args):
 
     ret_data = np.zeros([timesteps, len(output_vars)])
     state_var = init_state
+    ret_data[0] = np.array(list(state_var.values()))
 
-    for i in range(timesteps): 
+    for i in range(timesteps-1): 
         if (i+1) % 500 == 0:
             print("Time simulated: {:.2f} s".format(i * dt))  
 
         state_var = run_pipeline(unit, state_var, args, dt, verbose=False)
-        ret_data[i] = np.array(list(state_var.values()))
+        ret_data[i+1] = np.array(list(state_var.values()))
 
     return ret_data
 
@@ -231,7 +255,7 @@ def pipeline_eumulator(eqs, graph_unit, initial_state, args, sim_time=10, dt=0.0
     input_init_state = extract_arg_vals(initial_state, inputs[1])
     t_eval = np.linspace(0, sim_time, int(float(sim_time) / dt))
 
-    # Numerically solve the system.
+    # Numerically solve the system. TODO This solution is slightly inaccurate, find out why this is 
     sys_f = lambdify(inputs, sys_dot)
     solution = scipy.integrate.solve_ivp(sys_f, (0, sim_time), input_init_state, t_eval=t_eval, args=input_args)
     sim_dat = solution.y.T

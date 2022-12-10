@@ -4,36 +4,42 @@
         "mult": {
             "block_name": "MULTIPLY",
             "delay": 2,
+            "input_num": 2,
             "precedence": false,
             "op": "lambda a, b: a * b"
         },
         "add": {
             "block_name": "ADD",
             "delay": 1,
+            "input_num": 2,
             "precedence": false,
             "op": "lambda a, b: a + b"
         },
         "sub": {
             "block_name": "SUBTRACT",
             "delay": 1,
+            "input_num": 2,
             "precedence": true,
             "op": "lambda a, b: a - b"
         },
         "div": {
             "block_name": "DIVIDE",
             "delay": 4,
+            "input_num": 2,
             "precedence": true,
             "op": "lambda a, b: a / b"
         },
         "square": {
             "block_name": "SQUARER",
             "delay": 3,
+            "input_num": 1,
             "precedence": false,
             "op": "lambda a: a ** 2"
         },
         "lut": {
             "block_name": "LOOK_UP_TABLE",
             "delay": 2,
+            "input_num": 1,
             "precedence": false,
             "op": "None"
         }

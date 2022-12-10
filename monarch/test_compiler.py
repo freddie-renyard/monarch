@@ -79,15 +79,15 @@ def cicr():
 def duplicate_test():
 
     test_equ = """
-        dx/dt = (x - y) ** 4
+        dx/dt = x ** 3
     """
 
     args = {
-        "y": 9
+        
     }
 
     init_state = {
-        "x": 1
+        "x": 2
     }
 
     return test_equ, args, init_state
@@ -96,16 +96,17 @@ if __name__ == "__main__":
     test_equ, args, init_state = duplicate_test()
 
     compiled_cfg = eq_to_cfg(test_equ)
+    
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 
     report_utilisation(pipelined_cfg)
 
-    pipelined_cfg.show_report()
+    #pipelined_cfg.show_report()
 
     pipeline_eumulator(
         test_equ, 
         pipelined_cfg, 
         init_state, 
         args,
-        sim_time=5
+        sim_time=0.01
     )
