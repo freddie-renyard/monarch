@@ -4,12 +4,13 @@ from sympy import Symbol
 
 class GraphUnit:
 
-    def __init__(self, conn_mat, dly_mat, source_nodes, sink_nodes):
+    def __init__(self, conn_mat, dly_mat, source_nodes, sink_nodes, assoc_dat):
 
         self.conn_mat = conn_mat
         self.dly_mat = dly_mat
         self.source_nodes = source_nodes
         self.sink_nodes = sink_nodes
+        self.assoc_dat = assoc_dat
 
         self.arch_dbs = None
         self.predelays = []

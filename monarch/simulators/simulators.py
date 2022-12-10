@@ -190,12 +190,15 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                             in_args_vec = in_args_vec[:1]
 
                         # TODO add operation parsing to remove the eval expression below
-                        if input_num == 1 and target_op[:9] != "lambda a:" or len(target_op) > 20:
+                        if unit.sink_nodes[j] in unit.assoc_dat.keys():
+                            # The current node's operation is a lookup table emulation.
+                            op_lambda = unit.assoc_dat[unit.sink_nodes[j]]
+                        elif input_num == 1 and target_op[:9] != "lambda a:" or len(target_op) > 20:
                             raise Exception("MONARCH - Potentially unsafe operation detected")
                         elif input_num == 2 and target_op[:12] != "lambda a, b:" or len(target_op) > 20:
                             raise Exception("MONARCH - Potentially unsafe operation detected")
-                        
-                        op_lambda = eval(target_op)
+                        else:
+                            op_lambda = eval(target_op)
 
                     result = op_lambda(*in_args_vec)
 

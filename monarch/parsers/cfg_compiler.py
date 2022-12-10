@@ -116,22 +116,30 @@ def build_delay_mat(cfg, source_nodes, sink_nodes, arch_dbs, dly_mat=None):
     
     return dly_mat, total_dly
 
-def modify_ops(cfg, id=0):
+def modify_ops(cfg, id=0, assoc_dat={}):
 
     if type(cfg) != dict:
         return cfg
 
+    op_type = cfg['op']
     cfg['op'] += "_{}".format(id)
+
+    # Check for any associated data that needs to be saved regarding the operation.
+    assoc_dat = {}
+    if op_type == 'lut':
+        assoc_dat[cfg['op']] = cfg['fn']
 
     max_id = 0
     for i, input_node in enumerate(cfg['inputs']):
         if type(input_node) == dict:
             id += 1
-            cfg['inputs'][i], max_id = modify_ops(input_node, id=id)
+            cfg['inputs'][i], max_id, sub_assoc_dat = modify_ops(input_node, id=id, assoc_dat=assoc_dat)
+            assoc_dat = {**assoc_dat, **sub_assoc_dat}
 
     if id > max_id:
         max_id = id
-    return cfg, max_id
+
+    return cfg, max_id, assoc_dat
 
 def extract_source_nodes(cfg):
 
@@ -165,8 +173,8 @@ def cfg_to_mats(cfg, output_var, dbs, start_id):
     symbols = list(set(symbols))
 
     # Append a unique identifier to every operator node in graph.
-    cfg, max_id = modify_ops(cfg, id=start_id)
-
+    cfg, max_id, assoc_dat = modify_ops(cfg, id=start_id)
+    
     # Get all the unique identifiers in the graph.
     source_nodes = extract_source_nodes(cfg)
     inout_nodes = extract_sink_nodes(cfg)
@@ -189,7 +197,7 @@ def cfg_to_mats(cfg, output_var, dbs, start_id):
     source_i = source_nodes.index(cfg['op']) # Final CFG operation
     conn_mat[source_i, root_i] = 1
     
-    return [conn_mat, dly_mat, source_nodes, sink_nodes, max_dly], max_id + 1
+    return [conn_mat, dly_mat, source_nodes, sink_nodes, max_dly, assoc_dat], max_id + 1
 
 def paste_matrices(mat_1, mat_2):
 
@@ -206,11 +214,10 @@ def paste_matrices(mat_1, mat_2):
 
 def combine_trees(system_data):
     
-    conn_mat, dly_mat, source_nodes, tmp, max_dly = system_data[0]
+    conn_mat, dly_mat, source_nodes, tmp, max_dly, assoc_dat = system_data[0]
     sink_nodes = tmp.copy() # Prevent linking the first equation to the concatenations below
-
     for dat in system_data[1:]:
-        sub_conn, sub_dly, sub_source_nodes, sub_sink_nodes, sub_max_dly = dat
+        sub_conn, sub_dly, sub_source_nodes, sub_sink_nodes, sub_max_dly, sub_assoc_dat = dat
 
         if sub_max_dly > max_dly:
             max_dly = sub_max_dly
@@ -221,10 +228,11 @@ def combine_trees(system_data):
         sink_nodes += sub_sink_nodes
         conn_mat = paste_matrices(conn_mat, sub_conn)
         dly_mat = paste_matrices(dly_mat, sub_dly)
+        assoc_dat = {**assoc_dat, **sub_assoc_dat}
 
     # Add output delay registers to equalise pipeline depth for each tree.
     for dat in system_data:
-        _, _, _, sink_nodes_temp, tree_dly = dat
+        _, _, _, sink_nodes_temp, tree_dly, _ = dat
         val = [x for x in sink_nodes_temp if "_post" in str(x)][0]
         diff_from_max = max_dly - tree_dly
         
@@ -239,7 +247,8 @@ def combine_trees(system_data):
         conn_mat,
         dly_mat,
         source_nodes,
-        sink_nodes
+        sink_nodes,
+        assoc_dat
     )
 
 def cfg_to_pipeline(eq_system):

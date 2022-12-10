@@ -1,7 +1,7 @@
 from distutils.command.build import build
 from email.mime import base
 from parsers.cfg_compiler import extract_source_nodes
-import opcode
+import math
 import sympy
 from sympy import core, S, Symbol, Function, Lambda
 import json 
@@ -200,6 +200,13 @@ def check_power_op(cfg):
 
     raise Exception("MONARCH - Illegal power operation detected - input operands are {} of type {}".format((base_node, exp_node), (type(base_node), type(exp_node))))
 
+def replace_exp(cfg):
+    return {
+        "op": "lut",
+        "fn": lambda a: math.e ** a,
+        "inputs": cfg['inputs']
+    }
+
 def check_sympy_operation(op, check_str):
     if type(op) == str:
         return False
@@ -317,6 +324,10 @@ def optimise_cfg(cfg, mode=""):
         if ret_tree is not None:
             return ret_tree
     
+    # This checks for exponetiation (e^x) and replaces it with a LUT
+    if check_sympy_operation(cfg['op'], "exp"):
+        return replace_exp(cfg)
+
     return_vals = []    
     for child in cfg['inputs']:
         return_vals.append(optimise_cfg(child, mode=mode))

@@ -79,7 +79,8 @@ def cicr():
 def duplicate_test():
 
     test_equ = """
-        dx/dt = x ** 3
+        dx/dt = E ** x
+        dy/dt = 1 / (E**x)
     """
 
     args = {
@@ -87,7 +88,8 @@ def duplicate_test():
     }
 
     init_state = {
-        "x": 2
+        "x": 2,
+        "y": 2
     }
 
     return test_equ, args, init_state
