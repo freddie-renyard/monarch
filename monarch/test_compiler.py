@@ -80,7 +80,6 @@ def duplicate_test():
 
     test_equ = """
         dx/dt = E ** x
-        dy/dt = 1 / (E**x)
     """
 
     args = {
@@ -88,22 +87,20 @@ def duplicate_test():
     }
 
     init_state = {
-        "x": 2,
-        "y": 2
+        "x": 2
     }
 
     return test_equ, args, init_state
 if __name__ == "__main__":
 
-    test_equ, args, init_state = duplicate_test()
+    test_equ, args, init_state = cicr()
 
     compiled_cfg = eq_to_cfg(test_equ)
-    
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 
     report_utilisation(pipelined_cfg)
 
-    #pipelined_cfg.show_report()
+    pipelined_cfg.show_report()
 
     pipeline_eumulator(
         test_equ, 

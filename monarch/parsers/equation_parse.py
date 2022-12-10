@@ -375,14 +375,16 @@ def eq_to_cfg(eq):
                 sympy.sympify(rhs)
             ])
     
-    for i, (_, rhs) in enumerate(system_eqs):
-
-        atoms = rhs.atoms(Symbol)
-        for var, lhs in aux_eqs:
-            if var in atoms:
-                rhs = rhs.subs(var, lhs)
-        
-        system_eqs[i][1] = rhs
+    subs = True
+    while subs:
+        subs = False
+        for i, (_, rhs) in enumerate(system_eqs):
+            atoms = rhs.atoms(Symbol)
+            for var, lhs in aux_eqs:
+                if var in atoms:
+                    subs = True
+                    rhs = rhs.subs(var, lhs)
+            system_eqs[i][1] = rhs
 
     for lhs, eq_symb in system_eqs:
         
@@ -399,7 +401,7 @@ def eq_to_cfg(eq):
             opt_passes += 1
         
         print("MONARCH: Optimisation complete. Cycles: {}".format(opt_passes-1))
-        print(cfg)
+
         # Cleanup the graph by checking operations and substituting SymPy expressions
         # for monarch opcodes.
         cfg = cleanup_cfg(cfg)
