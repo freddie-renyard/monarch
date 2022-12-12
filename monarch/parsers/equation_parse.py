@@ -3,14 +3,28 @@ from email.mime import base
 from parsers.cfg_compiler import extract_source_nodes
 import math
 import sympy
-from sympy import core, S, Symbol, Function, Lambda
-import json 
-from sympy.parsing.sympy_parser import parse_expr
+from sympy import core, S, Symbol, Function, Lambda, powsimp
+import json
 
 supported_ops_map = {
     "Mul": "mult",
     "Add": "add"
 }
+
+def convert_to_str(tree):
+    # Convert dictionary nodes to strings for printing with JSON dumps.
+    
+    if type(tree) != dict:
+        return str(tree)
+
+    converted_ins = []
+    for input_node in tree['inputs']:
+       converted_ins.append(convert_to_str(input_node))
+    
+    return {
+        "op": tree['op'],
+        "inputs": converted_ins
+    }
 
 def extract_equality_expr(eq):
     # Extracts two sides of an equation from a string.
@@ -352,11 +366,8 @@ def modify_variable(cfg, var_str, new_var_str):
 
     return cfg
 
-def eq_to_cfg(eq): 
-
-    equations = extract_equality_expr(eq)
-    variables = []
-    eq_system = []
+def substitute_subeqs(equations):
+    # Substitutes subequations defined in the system at multiple levels.
 
     # Preprocess equations
     system_eqs = []
@@ -386,12 +397,22 @@ def eq_to_cfg(eq):
                     rhs = rhs.subs(var, lhs)
             system_eqs[i][1] = rhs
 
+    return system_eqs
+
+def eq_to_cfg(eq): 
+
+    equations = extract_equality_expr(eq)
+    variables = []
+    eq_system = []
+
+    system_eqs = substitute_subeqs(equations)
+    
     for lhs, eq_symb in system_eqs:
         
         # Recursively build computational flow graph for each
         # equation.
         cfg = get_operation(eq_symb)
-        
+
         # Optimise the CFG for mode of operation.
         new_cfg = cfg
         opt_passes = 0
@@ -401,6 +422,9 @@ def eq_to_cfg(eq):
             opt_passes += 1
         
         print("MONARCH: Optimisation complete. Cycles: {}".format(opt_passes-1))
+
+        #pretty = json.dumps(convert_to_str(cfg), indent=2)
+        #print(pretty)
 
         # Cleanup the graph by checking operations and substituting SymPy expressions
         # for monarch opcodes.

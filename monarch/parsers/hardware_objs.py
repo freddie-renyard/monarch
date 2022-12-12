@@ -32,7 +32,7 @@ class GraphUnit:
                 if self.source_nodes.count(node) > 1:
                     
                     # Take the lowest index occurance.
-                    dup_i = self.source_nodes.index(node)
+                    dup_i      = self.source_nodes.index(node)
                     line_1     = self.conn_mat[dup_i, :]
                     line_1_dly = self.dly_mat[dup_i, :]
                     del self.source_nodes[dup_i]
@@ -108,3 +108,13 @@ class GraphUnit:
 
     def compute_max_depth(self):
         pass
+
+    def verify_against_dbs(self):
+        # Verify that each node has the appropriate number of inputs
+        # after graph compilation and optimisation. 
+        for j, output_node in enumerate(self.sink_nodes):
+            name = str(output_node).split('_')[0]
+            if name in self.arch_dbs.keys():
+                conns = self.conn_mat[:, j] > 0
+                if np.sum(conns) != self.arch_dbs[name]['input_num']:
+                    raise Exception("MONARCH - Node {} has {} input connections, rather than {}".format(output_node, np.sum(conns), self.arch_dbs[name]['input_num'] ))

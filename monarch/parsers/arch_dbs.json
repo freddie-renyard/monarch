@@ -31,7 +31,7 @@
         },
         "square": {
             "block_name": "SQUARER",
-            "delay": 3,
+            "delay": 2,
             "input_num": 1,
             "precedence": false,
             "op": "lambda a: a ** 2"

@@ -1,9 +1,11 @@
 from mimetypes import init
 from tabnanny import verbose
+from xml.etree import ElementPath
 from sympy import Symbol, sympify, lambdify, symbols
 import numpy as np
 import scipy.integrate
 from matplotlib import pyplot as plt
+from parsers.equation_parse import substitute_subeqs, extract_equality_expr
 
 def extract_vars(deriv_str):
     pre, _ = deriv_str.split('/')
@@ -13,22 +15,21 @@ def parse_eqs(eq_str):
     # Parses input equation string.
     # TODO combine this with the start of the compiler pipeline.
 
-    substrs = eq_str.split('\n')
-    substrs = [x.strip() for x in substrs if x.strip() != '']
-    
+    equations = extract_equality_expr(eq_str)
+    system_eqs = substitute_subeqs(equations)
+
     # Vectorise input equations.
     input_symbols = []
     sys_dot = []
     deriv_strs = []
     sys_vars = []
-    for substr in substrs:
-        deriv_str, subeq_str = substr.split(' = ')
 
-        subeq = sympify(subeq_str)
-        sys_dot.append(subeq)
-        deriv_strs.append(deriv_str)
-        sys_vars.append(extract_vars(deriv_str))
-        input_symbols += list(subeq.free_symbols)
+    for lhs, rhs in system_eqs:
+
+        sys_dot.append(rhs)
+        deriv_strs.append(lhs)
+        sys_vars.append(extract_vars(lhs))
+        input_symbols += list(rhs.free_symbols)
 
     input_symbols = list(set(input_symbols))
 
@@ -153,14 +154,6 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                 elif reg_mat[:, j][addr] > 0:
                     reg_mat[:, j][addr] -= 1
             
-            
-            """
-            if compute_result and len(addrs) == 1 and '_post' not in str(unit.sink_nodes[j]):
-                # Catch the invalid result, where only one of two essential inputs to a binary node is valid
-                if 'square_' in str(unit.sink_nodes[j]):
-                    print('woop')
-            else:
-            """
             node_str = str(unit.sink_nodes[j]).split('_')[0]
             valid_req = True
             output_req = False
@@ -168,8 +161,10 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                 if unit.arch_dbs[node_str]['input_num'] != len(addrs):
                     valid_req = False
             else:
+                
                 if len(addrs) == 1 and '_post' in str(unit.sink_nodes[j]):
-                    output_req = True            
+                    output_req = True     
+
             if compute_result:
                 
                 if not valid_req:
@@ -178,7 +173,7 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                     # Extract the computation in question.
                     if output_req:
                         node_str = str(unit.sink_nodes[j])
-                        target_op = lambda a: a ** 2
+                        op_lambda = lambda a, b: a + b
                         target_delay = 0
                     else:
                         node_str = str(unit.sink_nodes[j]).split('_')[0]
@@ -199,7 +194,7 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                             raise Exception("MONARCH - Potentially unsafe operation detected")
                         else:
                             op_lambda = eval(target_op)
-
+                    
                     result = op_lambda(*in_args_vec)
 
                     if verbose:
@@ -213,8 +208,9 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
                     # An output to an output node has been detected.
                     if type(unit.sink_nodes[j]) != str:
                         terminate = True
-        #input()
+
         if verbose:
+            input()
             print("")
         
     # Extract the output states.
@@ -265,7 +261,7 @@ def pipeline_eumulator(eqs, graph_unit, initial_state, args, sim_time=10, dt=0.0
 
     # Simulate the graph unit.
     pipe_dat = emulate_graph_unit(graph_unit, sim_time, dt, initial_state, args)
-    
+
     plt.subplot(121)
     plt.title("Simulated Hardware Data")
     plt.plot(pipe_dat)

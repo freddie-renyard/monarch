@@ -11,6 +11,8 @@ def stringify_lst(lst):
 
 def plot_mat(mats, source_nodes, sink_nodes, mat_titles=[]):
 
+    plt.rc('font', size=2)
+
     # stringify source and sink nodes
     source_nodes = stringify_lst(source_nodes)
     sink_nodes = stringify_lst(sink_nodes)
@@ -35,7 +37,8 @@ def plot_mat(mats, source_nodes, sink_nodes, mat_titles=[]):
         for (i, j), z in np.ndenumerate(mat):
             axs[val].text(j, i, '{}'.format(int(z)), ha='center', va='center')
 
-    plt.show()
+    plt.savefig("HighResMatrices.png",dpi=600)
+    #plt.show()
 
 def report_utilisation(unit):
 

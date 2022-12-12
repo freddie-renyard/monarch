@@ -1,6 +1,7 @@
 import json
 import os
 from parsers.hardware_objs import GraphUnit
+from parsers.report_utils import plot_mat
 import numpy as np
 from matplotlib import pyplot as plt
 from sympy import Symbol
@@ -54,6 +55,7 @@ def build_conn_mat(cfg, source_nodes, sink_nodes, conn_mat=None):
     # Construct the connectivity matrices on entry function call.
     if conn_mat is None:
         conn_mat = np.zeros([len(source_nodes), len(sink_nodes)])
+
     # Construct the matrices from the top (root) node of the graph down.
     sink_i = sink_nodes.index(cfg['op']) # TODO add duplicate checking to input lists.
     source_is = []
@@ -106,6 +108,7 @@ def build_delay_mat(cfg, source_nodes, sink_nodes, arch_dbs, dly_mat=None):
         branch_dlys.append(branch_delay)
 
     unbalanced = branch_dlys.count(branch_dlys[0]) != len(branch_dlys)
+
     if unbalanced:
         # Get the index of the unbalanced path. TODO only works for binary trees.
         low_i = branch_dlys.index(min(branch_dlys))
@@ -132,10 +135,11 @@ def modify_ops(cfg, id=0, assoc_dat={}):
     max_id = 0
     for i, input_node in enumerate(cfg['inputs']):
         if type(input_node) == dict:
-            id += 1
-            cfg['inputs'][i], max_id, sub_assoc_dat = modify_ops(input_node, id=id, assoc_dat=assoc_dat)
+            
+            cfg['inputs'][i], max_id, sub_assoc_dat = modify_ops(input_node, id=id+20, assoc_dat=assoc_dat)
             assoc_dat = {**assoc_dat, **sub_assoc_dat}
-
+            id += 1
+    
     if id > max_id:
         max_id = id
 
@@ -166,15 +170,47 @@ def extract_sink_nodes(cfg):
     
     return sink_nodes
 
-def cfg_to_mats(cfg, output_var, dbs, start_id):
+def modify_op(cfg, target_op, target_id):
 
-    # Get all unique symbols in graph.
-    symbols = get_symbols(cfg)
-    symbols = list(set(symbols))
+    if type(cfg) != dict:
+        return None
 
+    assoc_dat = {}
+    if cfg['op'] == target_op:
+        cfg['op'] += "_" + str(target_id)
+
+        if target_op == 'lut':
+            assoc_dat[cfg['op']] = cfg['fn']
+
+        return cfg, target_id+1, assoc_dat
+    else:
+        for i, input_node in enumerate(cfg['inputs']):
+            ret_dat = modify_op(input_node, target_op, target_id)
+            
+            if ret_dat is not None:
+                new_in_node, new_id, assoc_dat = ret_dat
+                cfg['inputs'][i] = new_in_node
+                return cfg, new_id, assoc_dat
+        
+        return None
+    
+def cfg_to_mats(cfg, output_var, dbs, start_id, report=False):
+
+
+    """
     # Append a unique identifier to every operator node in graph.
     cfg, max_id, assoc_dat = modify_ops(cfg, id=start_id)
-    
+    """
+    assoc_dat = {}
+    for monarch_op in dbs.keys():
+        subs = True
+        while subs:
+            ret_dat = modify_op(cfg, monarch_op, start_id)
+            subs = (ret_dat != None)
+            if ret_dat is not None:
+                cfg, start_id, tmp_assoc_dat = ret_dat
+                assoc_dat = {**assoc_dat, **tmp_assoc_dat}
+
     # Get all the unique identifiers in the graph.
     source_nodes = extract_source_nodes(cfg)
     inout_nodes = extract_sink_nodes(cfg)
@@ -191,13 +227,13 @@ def cfg_to_mats(cfg, output_var, dbs, start_id):
     # where both nodal inputs are symbols.
     conn_mat = build_conn_mat(cfg, source_nodes, sink_nodes)
     dly_mat, max_dly = build_delay_mat(cfg, source_nodes, sink_nodes, dbs)
-    
+
     # Add the output root node onto the connectivity matrices
     root_i = sink_nodes.index(output_var)
     source_i = source_nodes.index(cfg['op']) # Final CFG operation
     conn_mat[source_i, root_i] = 1
     
-    return [conn_mat, dly_mat, source_nodes, sink_nodes, max_dly, assoc_dat], max_id + 1
+    return [conn_mat, dly_mat, source_nodes, sink_nodes, max_dly, assoc_dat], start_id
 
 def paste_matrices(mat_1, mat_2):
 
@@ -272,15 +308,15 @@ def cfg_to_pipeline(eq_system):
     start_id = 0
     ret_vals = []
     for eq in eq_system:
-        ret_data, start_id = cfg_to_mats(eq["cfg"], eq['root'], dbs, start_id)
-        ret_vals.append(ret_data)    
-
+        ret_data, start_id = cfg_to_mats(eq["cfg"], eq['root'], dbs, start_id, report=(start_id != 0))
+        ret_vals.append(ret_data)
+    
     # Stage 2: Combine the matrices and associated nodes for the full system.
     compiled_unit = combine_trees(ret_vals)
 
     # Stage 3: Run cleanup/optimisation algorithms on the graph unit
     compiled_unit.arch_dbs = dbs # Add the architecture spec to the unit
-
+    
     compiled_unit.combine_vars()
     compiled_unit.reorder_source_nodes()
     compiled_unit.reorder_sink_nodes()
