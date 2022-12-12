@@ -278,13 +278,14 @@ def combine_trees(system_data):
         
         input_node_i = list(conn_mat[:, i] > 0).index(True)
         dly_mat[input_node_i, i] = diff_from_max
-        
+    
     return GraphUnit(
         conn_mat,
         dly_mat,
         source_nodes,
         sink_nodes,
-        assoc_dat
+        assoc_dat,
+        max_dly
     )
 
 def cfg_to_pipeline(eq_system):
