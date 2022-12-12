@@ -421,7 +421,7 @@ def eq_to_cfg(eq):
             new_cfg = optimise_cfg(cfg, mode="digital-pipelined")
             opt_passes += 1
         
-        print("MONARCH: Optimisation complete. Cycles: {}".format(opt_passes-1))
+        print("MONARCH - Computational flow graph optimisation for {} complete. Cycles: {}".format(lhs, opt_passes-1))
 
         #pretty = json.dumps(convert_to_str(cfg), indent=2)
         #print(pretty)

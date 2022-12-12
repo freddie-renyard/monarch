@@ -1,6 +1,8 @@
 import numpy as np
 from parsers.report_utils import plot_mat
 from sympy import Symbol
+import json
+import os
 
 class GraphUnit:
 
@@ -12,8 +14,25 @@ class GraphUnit:
         self.sink_nodes = sink_nodes
         self.assoc_dat = assoc_dat
 
-        self.arch_dbs = None
         self.predelays = []
+
+        # Open architecture database.
+        script_dir = os.path.dirname(__file__)
+        rel_path = "arch_dbs.json"
+        abs_file_path = os.path.join(script_dir, rel_path)
+        
+        with open(abs_file_path) as file:
+            dbs = json.loads(file.read())
+            self.arch_dbs = dbs['opcodes']
+
+        self.combine_vars()
+        self.reorder_source_nodes()
+        self.reorder_sink_nodes()
+
+        self.remove_dup_branches()
+
+        self.verify_against_dbs()
+        self.compute_predelay()
 
     def show_report(self):
         plot_mat(
@@ -177,13 +196,17 @@ class GraphUnit:
         # Analyses the full system CFG in matrix form and removes branches
         # that are duplicates.
 
+        
+
         opt = True
         passes = 0
         while opt:
             opt = self.find_and_modify_similars()
             passes += 1
         
-        print("MONARCH: Matrix branch optimisation complete. Cycles: {}".format(passes))
+        print("MONARCH - Matrix branch optimisation complete. Cycles: {}".format(passes-1))
+        print("MONARCH - Post optimisation utilisation:")
+        self.report_utilisation()
 
     def verify_against_dbs(self):
         # Verify that each node has the appropriate number of inputs
@@ -194,3 +217,13 @@ class GraphUnit:
                 conns = self.conn_mat[:, j] > 0
                 if np.sum(conns) != self.arch_dbs[name]['input_num']:
                     raise Exception("MONARCH - Node {} has {} input connections, rather than {}".format(output_node, np.sum(conns), self.arch_dbs[name]['input_num'] ))
+
+    def report_utilisation(self):
+
+        for op in self.arch_dbs:
+            blocks = [node for node in self.source_nodes if type(node) == str]
+            blocks = [node for node in blocks if node.find(op) > -1]
+            print("\t{} : {} blocks".format(self.arch_dbs[op]["block_name"], len(blocks)))
+
+        print("\tPipeline depth: {} registers".format(self.compute_max_depth()))
+        print("\tTotal delay register count: {} registers\n".format(self.compute_delay_regs()))

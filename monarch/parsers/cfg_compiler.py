@@ -314,13 +314,6 @@ def cfg_to_pipeline(eq_system):
     # Stage 2: Combine the matrices and associated nodes for the full system.
     compiled_unit = combine_trees(ret_vals)
 
-    # Stage 3: Run cleanup/optimisation algorithms on the graph unit
-    compiled_unit.arch_dbs = dbs # Add the architecture spec to the unit
-    
-    compiled_unit.combine_vars()
-    compiled_unit.reorder_source_nodes()
-    compiled_unit.reorder_sink_nodes()
-
     # TODO Compute the max pipeline depth of the total graph.
 
     return compiled_unit
