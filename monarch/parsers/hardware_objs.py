@@ -109,51 +109,46 @@ class GraphUnit:
     def compute_max_depth(self):
         pass
 
-    def combine_cols(self, node_0, node_1):
+    def combine_mat_dat(self, mat, node_0, node_1):
+        # Combines relevant matrix data and deletes depreciated rows.
 
         node_0_source_i = np.where(self.source_nodes == node_0)[0]
         node_1_source_i = np.where(self.source_nodes == node_1)[0]
         node_0_sink_j = np.where(self.sink_nodes == node_0)[0]
         node_1_sink_j = np.where(self.sink_nodes == node_1)[0]
 
-        node_0_col = self.conn_mat[:, node_0_sink_j]
-        node_1_col = self.conn_mat[:, node_1_sink_j]
+        node_0_col = mat[:, node_0_sink_j]
+        node_1_col = mat[:, node_1_sink_j]
 
-        # Verify that combination condition is met
-        if not np.array_equal(node_0_col, node_1_col):
-            return None
-        
-        # Combine connectivity matrix rows, adding all data to lower indexed row/column.
-        node_0_row = self.conn_mat[node_0_source_i, :]
-        node_1_row = self.conn_mat[node_1_source_i, :]
-        self.conn_mat[node_0_source_i, :] = np.add(node_0_row, node_1_row)
-        
-        # Verify delay matrix columns
-        node_0_col = self.dly_mat[:, node_0_sink_j]
-        node_1_col = self.dly_mat[:, node_1_sink_j]
-        
         # Verify that combination condition is met - Throw exception because there is no hardware
         # provision for meeting unequal node delays. Implementing this is possible by using the pre-delay registers.
         if not np.array_equal(node_0_col, node_1_col):
             raise Exception("MONARCH - There is assymmetric input node delay in a branch that is attempting to be merged.")
         
-        # Combine delay matrix rows
-        node_0_row = self.dly_mat[node_0_source_i, :]
-        node_1_row = self.dly_mat[node_1_source_i, :]
-        self.dly_mat[node_0_source_i, :] = np.add(node_0_row, node_1_row)
+        # Combine matrix rows, adding all data to lower indexed row/column.
+        node_0_row = mat[node_0_source_i, :]
+        node_1_row = mat[node_1_source_i, :]
+        mat[node_0_source_i, :] = np.add(node_0_row, node_1_row)
 
-        self.source_nodes = np.delete(self.source_nodes, [node_1_source_i], axis=0)
-        self.sink_nodes = np.delete(self.sink_nodes, [node_1_sink_j], axis=0)
-        self.conn_mat = np.delete(self.conn_mat, [node_1_sink_j], axis=1)
-        self.conn_mat = np.delete(self.conn_mat, [node_1_source_i], axis=0)
-        self.dly_mat = np.delete(self.dly_mat, [node_1_sink_j], axis=1)
-        self.dly_mat = np.delete(self.dly_mat, [node_1_source_i], axis=0)
+        # Delete depreciated rows.
+        mat = np.delete(mat, [node_1_sink_j], axis=1)
+        mat = np.delete(mat, [node_1_source_i], axis=0)
 
-    def remove_dup_branches(self):
-        # Analyses the full system CFG in matrix form and removes branches
-        # that are duplicates.
+        return mat
 
+    def remove_nodes(self, node_lst):
+        # Deletes nodes by index.
+
+        for node in node_lst:
+            node_source_i = np.where(self.source_nodes == node)[0]
+            node_sink_j = np.where(self.sink_nodes == node)[0]
+
+            self.source_nodes = np.delete(self.source_nodes, [node_source_i], axis=0)
+            self.sink_nodes = np.delete(self.sink_nodes, [node_sink_j], axis=0)
+    
+    def find_and_modify_similars(self):
         # Exhaustively check for sink node symmetry.
+
         for j_0, sink_node_0 in enumerate(self.sink_nodes):
             for j_1, sink_node_1 in enumerate(self.sink_nodes):
                 # Strip nodes of their unique IDs
@@ -170,8 +165,25 @@ class GraphUnit:
 
                 if equal_op and equal_conn and dissimilar:
                     # The sink nodes compute the same result, combine them
-                    self.combine_cols(sink_node_0, sink_node_1)
-                    return None
+                    self.conn_mat = self.combine_mat_dat(self.conn_mat, sink_node_0, sink_node_1)
+                    self.dly_mat = self.combine_mat_dat(self.dly_mat, sink_node_0, sink_node_1)
+                    self.remove_nodes([sink_node_1])
+                    return True
+
+        # Return false if no optimisations have been found or performed.
+        return False
+
+    def remove_dup_branches(self):
+        # Analyses the full system CFG in matrix form and removes branches
+        # that are duplicates.
+
+        opt = True
+        passes = 0
+        while opt:
+            opt = self.find_and_modify_similars()
+            passes += 1
+        
+        print("MONARCH: Matrix branch optimisation complete. Cycles: {}".format(passes))
 
     def verify_against_dbs(self):
         # Verify that each node has the appropriate number of inputs

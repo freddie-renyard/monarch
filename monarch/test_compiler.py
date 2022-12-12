@@ -94,7 +94,7 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = duplicate_test()
+    test_equ, args, init_state = lorenz_attractor()
 
     compiled_cfg = eq_to_cfg(test_equ)
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
@@ -107,11 +107,11 @@ if __name__ == "__main__":
     pipelined_cfg.compute_predelay()
 
     #pipelined_cfg.show_report()
-    
+
     pipeline_eumulator(
         test_equ, 
         pipelined_cfg, 
         init_state, 
         args,
-        sim_time=0.06
+        sim_time=5.0
     )
