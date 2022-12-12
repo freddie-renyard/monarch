@@ -323,6 +323,4 @@ def cfg_to_pipeline(eq_system):
 
     # TODO Compute the max pipeline depth of the total graph.
 
-    compiled_unit.compute_predelay()
-
     return compiled_unit
