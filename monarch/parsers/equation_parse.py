@@ -5,11 +5,7 @@ import math
 import sympy
 from sympy import core, S, Symbol, Function, Lambda, powsimp
 import json
-
-supported_ops_map = {
-    "Mul": "mult",
-    "Add": "add"
-}
+import os
 
 def convert_to_str(tree):
     # Convert dictionary nodes to strings for printing with JSON dumps.
@@ -233,7 +229,7 @@ def check_monarch_operation(op, check_str):
     else:
         return op == check_str
 
-def cleanup_cfg(cfg):
+def cleanup_cfg(cfg, op_map):
     # This function recurses through the tree and changes remaining 
     # sympy operations into monarch opcodes.
     # TODO combine the recursive CFG function cores into one, as a lot
@@ -246,15 +242,15 @@ def cleanup_cfg(cfg):
     if type(cfg['op']) != str:
         # This is a sympy operation.
         op_name = get_operation_name(cfg['op'])
-        if op_name in supported_ops_map.keys():
-            cfg['op'] = supported_ops_map[op_name]
+        if op_name in op_map.keys():
+            cfg['op'] = op_map[op_name]
             return cfg
         else:
             return None
     
     return_vals = []    
     for child in cfg['inputs']:
-        return_vals.append(cleanup_cfg(child))
+        return_vals.append(cleanup_cfg(child, op_map))
 
     for i, item in enumerate(return_vals):
         if item is not None:
@@ -428,7 +424,21 @@ def eq_to_cfg(eq):
 
         # Cleanup the graph by checking operations and substituting SymPy expressions
         # for monarch opcodes.
-        cfg = cleanup_cfg(cfg)
+        # Open architecture database. TODO Combine into utility function with other instance of the code below
+        script_dir = os.path.dirname(__file__)
+        rel_path = "arch_dbs.json"
+        abs_file_path = os.path.join(script_dir, rel_path)
+        
+        with open(abs_file_path) as file:
+            dbs = json.loads(file.read())
+            dbs = dbs['opcodes']
+        
+        op_map = {}
+        for instr in dbs:
+            sympy_name = dbs[instr]["sympy_op"]
+            op_map[sympy_name] = str(instr)
+
+        cfg = cleanup_cfg(cfg, op_map)
         if cfg is None:
             raise Exception("MONARCH - CFG contains unsupported operations.")
 

@@ -6,42 +6,48 @@
             "delay": 2,
             "input_num": 2,
             "precedence": false,
-            "op": "lambda a, b: a * b"
+            "op": "lambda a, b: a * b",
+            "sympy_op": "Mul"
         },
         "add": {
             "block_name": "ADD",
             "delay": 1,
             "input_num": 2,
             "precedence": false,
-            "op": "lambda a, b: a + b"
+            "op": "lambda a, b: a + b",
+            "sympy_op": "Add"
         },
         "sub": {
             "block_name": "SUBTRACT",
             "delay": 1,
             "input_num": 2,
             "precedence": true,
-            "op": "lambda a, b: a - b"
+            "op": "lambda a, b: a - b",
+            "sympy_op": "None"
         },
         "div": {
             "block_name": "DIVIDE",
             "delay": 4,
             "input_num": 2,
             "precedence": true,
-            "op": "lambda a, b: a / b"
+            "op": "lambda a, b: a / b",
+            "sympy_op": "None"
         },
         "square": {
             "block_name": "SQUARER",
             "delay": 2,
             "input_num": 1,
             "precedence": false,
-            "op": "lambda a: a ** 2"
+            "op": "lambda a: a ** 2",
+            "sympy_op": "None"
         },
         "lut": {
             "block_name": "LOOK_UP_TABLE",
             "delay": 2,
             "input_num": 1,
             "precedence": false,
-            "op": "None"
+            "op": "None",
+            "sympy_op": "None"
         }
     }
 }

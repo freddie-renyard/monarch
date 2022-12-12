@@ -196,8 +196,6 @@ class GraphUnit:
         # Analyses the full system CFG in matrix form and removes branches
         # that are duplicates.
 
-        
-
         opt = True
         passes = 0
         while opt:
