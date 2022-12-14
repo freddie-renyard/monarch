@@ -3,7 +3,7 @@
     "opcodes": {
         "mult": {
             "block_name": "MULTIPLY",
-            "delay": 2,
+            "delay": 1,
             "input_num": 2,
             "precedence": false,
             "op": "lambda a, b: a * b",

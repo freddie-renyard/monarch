@@ -1,4 +1,5 @@
 from mimetypes import init
+from re import sub
 from tabnanny import verbose
 from xml.etree import ElementPath
 from sympy import Symbol, sympify, lambdify, symbols
@@ -262,6 +263,12 @@ def pipeline_eumulator(eqs, graph_unit, initial_state, args, sim_time=10, dt=0.0
     # Simulate the graph unit.
     pipe_dat = emulate_graph_unit(graph_unit, sim_time, dt, initial_state, args)
 
+    # Compute the MSE between the two simulations.
+    sub_dat = np.subtract(pipe_dat, sim_dat)
+    square_dat = sub_dat ** 2
+    mean_vec = np.mean(square_dat, axis=0)
+    print("MONARCH - MSE for each system dimension: {}".format(mean_vec))
+
     plt.subplot(121)
     plt.title("Simulated Hardware Data")
     plt.plot(pipe_dat)
@@ -277,4 +284,3 @@ def pipeline_eumulator(eqs, graph_unit, initial_state, args, sim_time=10, dt=0.0
     ax.plot3D(*np.transpose(sim_dat), 'red') 
     plt.show()
     """
-
