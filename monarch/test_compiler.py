@@ -109,6 +109,8 @@ if __name__ == "__main__":
     )
     """
 
-    # pipelined_cfg.show_report()
+    
 
     hardware_unit = HardwareUnit(pipelined_cfg)
+
+    pipelined_cfg.show_report()

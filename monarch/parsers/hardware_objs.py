@@ -242,7 +242,7 @@ class HardwareUnit:
             dbs = json.loads(file.read())
             self.arch_dbs = dbs
 
-        self.compile_to_header()
+        self.compile_to_header("temp_test")
 
     def lst_to_str(self, target_lst, newlines=False):
         
@@ -266,7 +266,7 @@ class HardwareUnit:
         else:
             return 0
     
-    def compile_to_header(self):
+    def compile_to_header(self, filename):
         # This method compiles a target unit to a verilog header 
         # for pipeline synthesis.
 
@@ -288,3 +288,37 @@ class HardwareUnit:
         sources = [self.get_source_type(x) for x in self.graph_unit.source_nodes]
         source_str = self.lst_to_str(sources)
         vh_str = vh_str.replace("<arr_source_type>", source_str)
+
+        # Compile the connectivity arrays.
+        conn_primaries   = []
+        dly_primaries    = []
+        conn_secondaries = []
+        dly_secondaries  = []
+        err_val = -1
+
+        for j in range(len(self.graph_unit.sink_nodes)):
+            target_col  = self.graph_unit.conn_mat[:, j]
+            dly_col     = self.graph_unit.dly_mat[:, j]
+
+            primary = target_col == 1
+            secondary = target_col == 2
+
+            primary_i = np.nonzero(primary)[0]
+            conn_primaries.append(primary_i)
+            dly_primaries.append(dly_col[primary_i])
+            
+            secondary_i = np.nonzero(secondary)[0]
+            if len(secondary_i):
+                conn_secondaries.append(secondary_i)
+                dly_secondaries.append(dly_col[secondary_i])
+            else:
+                conn_secondaries.append(err_val)
+                dly_secondaries.append(err_val)
+        
+        vh_str = vh_str.replace("<arr_in_1>", self.lst_to_str(conn_primaries))
+        vh_str = vh_str.replace("<arr_in_2>", self.lst_to_str(conn_secondaries))
+        vh_str = vh_str.replace("<arr_dly_1>", self.lst_to_str(dly_primaries))
+        vh_str = vh_str.replace("<arr_dly_2>", self.lst_to_str(dly_secondaries))
+
+        with open("monarch/cache/{}.vh".format(filename), "w+") as output_file:
+            output_file.write(vh_str)
