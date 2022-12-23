@@ -1,3 +1,4 @@
+from parsers.hardware_objs import HardwareUnit
 from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
 from simulators.simulators import pipeline_eumulator
@@ -93,11 +94,12 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = cicr()
+    test_equ, args, init_state = lorenz_attractor()
 
     compiled_cfg = eq_to_cfg(test_equ)
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 
+    """
     pipeline_eumulator(
         test_equ, 
         pipelined_cfg, 
@@ -105,3 +107,8 @@ if __name__ == "__main__":
         args,
         sim_time=0.51
     )
+    """
+
+    # pipelined_cfg.show_report()
+
+    hardware_unit = HardwareUnit(pipelined_cfg)

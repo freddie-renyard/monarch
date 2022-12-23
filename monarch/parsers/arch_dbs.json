@@ -1,8 +1,12 @@
 {
     "description": "This database contains architecture parameters for the pipelined MonArch architecture.",
+    "sys_params": {
+        "datapath_width": 16
+    },
     "opcodes": {
         "mult": {
             "block_name": "MULTIPLY",
+            "op_index": 1,
             "delay": 1,
             "input_num": 2,
             "precedence": false,
@@ -12,6 +16,7 @@
         "add": {
             "block_name": "ADD",
             "delay": 1,
+            "op_index": 2,
             "input_num": 2,
             "precedence": false,
             "op": "lambda a, b: a + b",
@@ -20,6 +25,7 @@
         "sub": {
             "block_name": "SUBTRACT",
             "delay": 1,
+            "op_index": 3,
             "input_num": 2,
             "precedence": true,
             "op": "lambda a, b: a - b",
@@ -28,6 +34,7 @@
         "div": {
             "block_name": "DIVIDE",
             "delay": 4,
+            "op_index": 4,
             "input_num": 2,
             "precedence": true,
             "op": "lambda a, b: a / b",
@@ -36,6 +43,7 @@
         "square": {
             "block_name": "SQUARER",
             "delay": 2,
+            "op_index": 5,
             "input_num": 1,
             "precedence": false,
             "op": "lambda a: a ** 2",
@@ -44,6 +52,7 @@
         "lut": {
             "block_name": "LOOK_UP_TABLE",
             "delay": 2,
+            "op_index": 6,
             "input_num": 1,
             "precedence": false,
             "op": "None",

@@ -13,7 +13,7 @@ class GraphUnit:
         self.source_nodes = source_nodes
         self.sink_nodes = sink_nodes
         self.assoc_dat = assoc_dat
-        self.pipelength_depth = pipeline_depth
+        self.pipeline_depth = pipeline_depth
 
         self.predelays = []
 
@@ -224,5 +224,67 @@ class GraphUnit:
             blocks = [node for node in blocks if node.find(op) > -1]
             print("\t{} : {} blocks".format(self.arch_dbs[op]["block_name"], len(blocks)))
 
-        print("\tPipeline depth: {} registers".format(self.pipelength_depth))
+        print("\tPipeline depth: {} registers".format(self.pipeline_depth))
         print("\tTotal delay register count: {} registers\n".format(self.compute_delay_regs()))
+
+class HardwareUnit:
+
+    def __init__(self, target_unit):
+
+        self.graph_unit = target_unit
+
+        # Open architecture database.
+        script_dir = os.path.dirname(__file__)
+        rel_path = "arch_dbs.json"
+        abs_file_path = os.path.join(script_dir, rel_path)
+        
+        with open(abs_file_path) as file:
+            dbs = json.loads(file.read())
+            self.arch_dbs = dbs
+
+        self.compile_to_header()
+
+    def lst_to_str(self, target_lst, newlines=False):
+        
+        output_str = ""
+        for i, el in enumerate(target_lst):
+            output_str += str(int(el)) + ", "
+
+            if i == len(target_lst) - 1:
+                output_str = output_str[:-2]
+                
+            if newlines:
+                output_str += "\n    "
+        
+        return output_str
+
+    def get_source_type(self, target):
+        # Returns the integer type of a given node.
+        if type(target) == str:
+            target_op = target.split("_")[0]
+            return self.arch_dbs["opcodes"][target_op]["op_index"]
+        else:
+            return 0
+    
+    def compile_to_header(self):
+        # This method compiles a target unit to a verilog header 
+        # for pipeline synthesis.
+
+        with open("monarch/dbs/gu_params_template.vh") as vh_file:
+            vh_str = vh_file.read()
+
+        # Compile integer constants
+        vh_str = vh_str.replace("<source_num>", str(len(self.graph_unit.source_nodes)))
+        vh_str = vh_str.replace("<sink_num>",   str(len(self.graph_unit.source_nodes)))
+        vh_str = vh_str.replace("<pipe_depth>", str(self.graph_unit.pipeline_depth))
+        vh_str = vh_str.replace("<input_num>",  str(len([x for x in self.graph_unit.source_nodes if type(x) != str])))
+        vh_str = vh_str.replace("<output_num>",  str(len([x for x in self.graph_unit.sink_nodes if type(x) != str])))
+        vh_str = vh_str.replace("<path_width>",  str(self.arch_dbs["sys_params"]["datapath_width"]))
+
+        predelay_str = self.lst_to_str(self.graph_unit.predelays)
+        vh_str = vh_str.replace("<arr_predelay>", predelay_str)
+
+        # Compile source node params.   
+        sources = [self.get_source_type(x) for x in self.graph_unit.source_nodes]
+        source_str = self.lst_to_str(sources)
+        vh_str = vh_str.replace("<arr_source_type>", source_str)
