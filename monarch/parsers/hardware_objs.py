@@ -1,5 +1,6 @@
 import numpy as np
 from parsers.report_utils import plot_mat
+from parsers.bin_compiler import convert_to_hex, convert_to_fixed
 from sympy import Symbol
 import json
 import os
@@ -32,8 +33,12 @@ class GraphUnit:
 
         self.remove_dup_branches()
 
+        self.sort_matrices()
+
         self.verify_against_dbs()
         self.compute_predelay()
+
+
 
     def show_report(self):
         plot_mat(
@@ -227,11 +232,43 @@ class GraphUnit:
         print("\tPipeline depth: {} registers".format(self.pipeline_depth))
         print("\tTotal delay register count: {} registers\n".format(self.compute_delay_regs()))
 
+    def sort_matrices(self):
+        # Sorts the matrices and source/sink nodes into ascending numerical order
+        # to make hardware routing easier.
+
+        sort_lst = []
+        for el in self.source_nodes:
+            if type(el) == str:
+                sort_lst.append(int(el.split("_")[1]))
+            else:
+                sort_lst.append(-1)
+        
+        sorted_is = np.argsort(sort_lst)
+
+        self.source_nodes = self.source_nodes[sorted_is]        
+        self.conn_mat     = self.conn_mat[sorted_is, :]
+        self.dly_mat      = self.dly_mat[sorted_is, :]
+
+        sort_lst = []
+        for el in self.sink_nodes:
+            if type(el) == str:
+                sort_lst.append(int(el.split("_")[1]))
+            else:
+                sort_lst.append(-1)
+        
+        sorted_is = np.argsort(sort_lst)
+
+        self.sink_nodes = self.sink_nodes[sorted_is]        
+        self.conn_mat   = self.conn_mat[:, sorted_is]
+        self.dly_mat    = self.dly_mat[:, sorted_is]
+
 class HardwareUnit:
 
-    def __init__(self, target_unit):
+    def __init__(self, target_unit, args, init_state, name="unit_1"):
 
         self.graph_unit = target_unit
+        self.args = {**args, **init_state}
+        self.name = name
 
         # Open architecture database.
         script_dir = os.path.dirname(__file__)
@@ -243,6 +280,7 @@ class HardwareUnit:
             self.arch_dbs = dbs
 
         self.compile_to_header("temp_test")
+        self.compile_model_inst_vars()
 
     def lst_to_str(self, target_lst, newlines=False):
         
@@ -265,7 +303,26 @@ class HardwareUnit:
             return self.arch_dbs["opcodes"][target_op]["op_index"]
         else:
             return 0
-    
+
+    def compile_model_inst_vars(self):
+        # Compiles the variables of a model into their binary representation.
+
+        data_width = self.arch_dbs["sys_params"]["datapath_width"]
+        radix = self.arch_dbs["sys_params"]["datapath_radix"]
+        
+        for key in self.args:
+            if len([self.args[key]]) == 1:
+                output = [convert_to_fixed(self.args[key], data_width, radix)]
+            else:
+                output = convert_to_fixed(self.args[key], data_width, radix)
+            
+            output = [convert_to_hex(x) for x in output]
+
+            with open("monarch/cache/{}_{}_state".format(self.name, key), "w+") as file:
+                for hex_num in output:
+                    file.write(hex_num)
+                    file.write("\n")
+
     def compile_to_header(self, filename):
         # This method compiles a target unit to a verilog header 
         # for pipeline synthesis.
@@ -275,7 +332,7 @@ class HardwareUnit:
 
         # Compile integer constants
         vh_str = vh_str.replace("<source_num>", str(len(self.graph_unit.source_nodes)))
-        vh_str = vh_str.replace("<sink_num>",   str(len(self.graph_unit.source_nodes)))
+        vh_str = vh_str.replace("<sink_num>",   str(len(self.graph_unit.sink_nodes)))
         vh_str = vh_str.replace("<pipe_depth>", str(self.graph_unit.pipeline_depth))
         vh_str = vh_str.replace("<input_num>",  str(len([x for x in self.graph_unit.source_nodes if type(x) != str])))
         vh_str = vh_str.replace("<output_num>",  str(len([x for x in self.graph_unit.sink_nodes if type(x) != str])))

@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     compiled_cfg = eq_to_cfg(test_equ)
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
-
+    
     """
     pipeline_eumulator(
         test_equ, 
@@ -108,9 +108,8 @@ if __name__ == "__main__":
         sim_time=0.51
     )
     """
-
     
 
-    hardware_unit = HardwareUnit(pipelined_cfg)
+    hardware_unit = HardwareUnit(pipelined_cfg, args, init_state)
 
-    pipelined_cfg.show_report()
+    #pipelined_cfg.show_report()

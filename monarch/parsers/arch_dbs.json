@@ -1,7 +1,8 @@
 {
     "description": "This database contains architecture parameters for the pipelined MonArch architecture.",
     "sys_params": {
-        "datapath_width": 16
+        "datapath_width": 16,
+        "datapath_radix": 8
     },
     "opcodes": {
         "mult": {
