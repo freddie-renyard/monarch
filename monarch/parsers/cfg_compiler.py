@@ -68,6 +68,7 @@ def build_conn_mat(cfg, source_nodes, sink_nodes, conn_mat=None):
             conn_mat = build_conn_mat(input_node, source_nodes, sink_nodes, conn_mat=conn_mat)
         else:
             node_i = source_nodes.index(input_node)
+
         source_is.append(node_i)
     
     # Add the computed graph indices into the connectivity matrix
@@ -220,7 +221,7 @@ def cfg_to_mats(cfg, output_var, dbs, start_id, report=False):
 
     for i, node in enumerate(source_nodes):
         if type(node) != str:
-            if node.is_number:
+            if node.is_number or str(node) == "0": 
                 source_nodes[i] = Symbol(str(node) + "_const")
 
     # Build flow up from the deepest node in the graph,
@@ -304,7 +305,7 @@ def cfg_to_pipeline(eq_system):
         valid = verify_graph(eq["cfg"], dbs)
         if not valid:
             raise Exception("MONARCH - Unsupported operations present in compiled graphs")
-
+    
     # Stage 1: compile each individual graph to it's matrix representation.
     start_id = 0
     ret_vals = []

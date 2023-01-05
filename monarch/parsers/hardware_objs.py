@@ -38,8 +38,6 @@ class GraphUnit:
         self.verify_against_dbs()
         self.compute_predelay()
 
-
-
     def show_report(self):
         plot_mat(
             [self.conn_mat, np.expand_dims(self.predelays, axis=1), self.dly_mat],
@@ -187,8 +185,10 @@ class GraphUnit:
                 equal_op = target_ops[0] == target_ops[1]
                 equal_conn = np.array_equal(target_rows[0], target_rows[1])
                 dissimilar = str(sink_node_0) != str(sink_node_1)
+                
+                no_square = not (("square" in str(sink_node_0)) and ("square" in str(sink_node_1)))
 
-                if equal_op and equal_conn and dissimilar:
+                if equal_op and equal_conn and dissimilar and no_square:
                     # The sink nodes compute the same result, combine them
                     self.conn_mat = self.combine_mat_dat(self.conn_mat, sink_node_0, sink_node_1)
                     self.dly_mat = self.combine_mat_dat(self.dly_mat, sink_node_0, sink_node_1)
@@ -264,10 +264,10 @@ class GraphUnit:
 
 class HardwareUnit:
 
-    def __init__(self, target_unit, args, init_state, name="unit_1"):
+    def __init__(self, target_unit, args, init_state, dt, name="unit_1"):
 
         self.graph_unit = target_unit
-        self.args = {**args, **init_state}
+        self.args = {**args, **init_state, "dt": dt}
         self.name = name
 
         # Open architecture database.
@@ -279,7 +279,7 @@ class HardwareUnit:
             dbs = json.loads(file.read())
             self.arch_dbs = dbs
 
-        self.compile_to_header("temp_test")
+        self.compile_to_header("gu_params")
         self.compile_model_inst_vars()
 
     def lst_to_str(self, target_lst, newlines=False):
@@ -336,8 +336,7 @@ class HardwareUnit:
         vh_str = vh_str.replace("<pipe_depth>", str(self.graph_unit.pipeline_depth))
         vh_str = vh_str.replace("<input_num>",  str(len([x for x in self.graph_unit.source_nodes if type(x) != str])))
         vh_str = vh_str.replace("<output_num>",  str(len([x for x in self.graph_unit.sink_nodes if type(x) != str])))
-        vh_str = vh_str.replace("<path_width>",  str(self.arch_dbs["sys_params"]["datapath_width"]))
-
+        
         predelay_str = self.lst_to_str(self.graph_unit.predelays)
         vh_str = vh_str.replace("<arr_predelay>", predelay_str)
 
@@ -377,5 +376,31 @@ class HardwareUnit:
         vh_str = vh_str.replace("<arr_dly_1>", self.lst_to_str(dly_primaries))
         vh_str = vh_str.replace("<arr_dly_2>", self.lst_to_str(dly_secondaries))
 
+        with open("monarch/cache/{}.vh".format(filename), "w+") as output_file:
+            output_file.write(vh_str)
+
+class CFGU:
+
+    def __init__(self):
+        # Open architecture database.
+        script_dir = os.path.dirname(__file__)
+        rel_path = "arch_dbs.json"
+        abs_file_path = os.path.join(script_dir, rel_path)
+        
+        with open(abs_file_path) as file:
+            dbs = json.loads(file.read())
+            self.arch_dbs = dbs
+
+        self.compile_gbl_header()
+            
+    def compile_gbl_header(self):
+
+        with open("monarch/dbs/gbl_params_template.vh") as vh_file:
+            vh_str = vh_file.read()
+
+        vh_str = vh_str.replace("<path_width>",  str(self.arch_dbs["sys_params"]["datapath_width"]))
+        vh_str = vh_str.replace("<radix_width>",  str(self.arch_dbs["sys_params"]["datapath_radix"]))
+
+        filename = "gbl_params"
         with open("monarch/cache/{}.vh".format(filename), "w+") as output_file:
             output_file.write(vh_str)

@@ -305,7 +305,7 @@ def optimise_cfg(cfg, mode=""):
 
     # The test below binarises a multiplication operation with more than 2 inputs.
     # It doesn't work for division, which is covered above.
-    if check_sympy_operation(cfg['op'], "Mul"):
+    if check_sympy_operation(cfg['op'], "Mul") or check_monarch_operation(cfg['op'], 'mult'):
         if len(cfg['inputs']) > 2:
             tree = construct_balanced_tree(cfg['inputs'], opcode="mult")
             return tree
@@ -455,7 +455,7 @@ def eq_to_cfg(eq):
     for i, eq in enumerate(eq_system):
         terminal_nodes = extract_source_nodes(eq)
         for node in terminal_nodes:
-            if node.is_number:
+            if node.is_number or str(node) == "0":
                 eq_system[i] = modify_variable(eq, str(node), str(node) + "_const")
 
     # Add multiplication by dt to each tree to perform Euler's method.

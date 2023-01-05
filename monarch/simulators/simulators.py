@@ -69,6 +69,7 @@ def run_pipeline(unit, in_state, args, dt, verbose=False):
     # Prepare the initial state vector.
     source_state = np.zeros((len(unit.source_nodes)))
     source_valid = np.zeros((len(unit.source_nodes)))
+
     for i, node in enumerate(unit.source_nodes):
         if '_pre' in str(node):
             source_state[i] = in_state[str(node)[:-4]]
@@ -272,6 +273,9 @@ def pipeline_eumulator(eqs, graph_unit, initial_state, args, sim_time=10, dt=0.0
     plt.subplot(121)
     plt.title("Simulated Hardware Data")
     plt.plot(pipe_dat)
+
+    for i, dat in enumerate(pipe_dat[:10]):
+        print(i, dat)
 
     plt.subplot(122)
     plt.title("Numerical Simulation Data")

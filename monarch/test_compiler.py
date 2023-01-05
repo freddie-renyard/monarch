@@ -1,4 +1,4 @@
-from parsers.hardware_objs import HardwareUnit
+from parsers.hardware_objs import HardwareUnit, CFGU
 from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
 from simulators.simulators import pipeline_eumulator
@@ -16,12 +16,55 @@ def oregonator_model():
     }
 
     args = {
-        "epsilon": 10.0 ** -2,
-        "q": 10.0 ** -4,
-        "f": 0.0001
+        "f": 0.0001,
+        "q": 10.0 ** -4
     }
 
-    return test_equ, init_state, args
+    return test_equ, args, init_state
+
+def hodgkin_huxley():
+
+    test_equ = """
+    dv/dt = -(I_K + I_Na + I_L - I_in) / Cm 
+    dn/dt = a_n * (1 - n) - b_n * n
+    dm/dt = a_m * (1 - m) - b_m * m
+    dh/dt = a_h * (1 - h) - b_h * h
+
+    I_K = g_K * (n ^ 4) * (v - V_K)
+    I_Na = g_Na * (m ^ 3) * h * (v - V_Na)
+    I_L = g_L * (v - V_L)
+
+    a_n = 0.01 * (10 - v) / (e ^ (1 - 0.1 * v) - 1)
+    b_n = 0.125 * e ^ (-v / 80)
+
+    a_m = 0.1 * (25 - v) / (e ^ (2.5 - 0.1 * v) - 1)
+    b_m = 4 * e ^ (-v / 18)
+
+    a_h = 0.07 * (e ^ (-v / 20))
+    b_h = 1 / (e ^ (3 - 0.1 * v) + 1)
+    """
+
+    args = {
+        "g_K": 36.0,
+        "g_Na": 120.0,
+        "g_L": 0.3,
+        "V_K": -12.0,
+        "V_Na": 115.0,
+        "V_L": 10.613,
+        "Cm": 1.0,
+        "I_in": 1,
+        "e": 2.71
+    }
+
+    init_state = {
+        "v": 0.0,
+        "n": 0.31767691,
+        "m": 0.05293249,
+        "h": 0.59612075
+    }
+
+
+    return test_equ, args, init_state
 
 def lorenz_attractor():
 
@@ -33,10 +76,10 @@ def lorenz_attractor():
     args = {
         "b": 8.0/3.0,
         "sigma": 10,
-        "rho": 28
+        "rho": 10
     }
     init_state = {
-        "x": 1,
+        "x": 1.0,
         "y": 0,
         "z": 0
     }
@@ -79,37 +122,38 @@ def cicr():
 def duplicate_test():
 
     test_equ = """
-        dx/dt = (x + y) ** 3
+        dx/dt = (x + y) * 0.5
+        dy/dt = (x - y)
     """
 
     args = {
-        "y": 1
+        
     }
 
     init_state = {
-        "x": 1.1
+        "x": 0.5,
+        "y": 0.6
     }
 
     return test_equ, args, init_state
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = lorenz_attractor()
+    test_equ, args, init_state = hodgkin_huxley()
 
+    dt = 1.0/128.0
     compiled_cfg = eq_to_cfg(test_equ)
-    pipelined_cfg = cfg_to_pipeline(compiled_cfg)
     
-    """
+    pipelined_cfg = cfg_to_pipeline(compiled_cfg)
+    #pipelined_cfg.show_report()
     pipeline_eumulator(
         test_equ, 
         pipelined_cfg, 
         init_state, 
         args,
-        sim_time=0.51
+        sim_time=dt * 10000,
+        dt=dt
     )
-    """
-    
 
-    hardware_unit = HardwareUnit(pipelined_cfg, args, init_state)
-
-    #pipelined_cfg.show_report()
+    cfgu = CFGU()
+    hardware_unit = HardwareUnit(pipelined_cfg, args, init_state, dt=dt)
