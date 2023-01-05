@@ -262,6 +262,71 @@ class GraphUnit:
         self.conn_mat   = self.conn_mat[:, sorted_is]
         self.dly_mat    = self.dly_mat[:, sorted_is]
 
+class ManycoreUnit:
+
+    def __init__(self, target_unit, args, init_state, dt, name="manycore_1"):
+
+        self.graph_unit = target_unit
+        self.args = {**args, **init_state, "dt": dt}
+        self.name = name
+
+        # Open architecture database.
+        script_dir = os.path.dirname(__file__)
+        rel_path = "arch_dbs.json"
+        abs_file_path = os.path.join(script_dir, rel_path)
+        
+        with open(abs_file_path) as file:
+            dbs = json.loads(file.read())
+            self.arch_dbs = dbs
+
+        self.cores = dbs['manycore_params']['cores']
+        self.input_regs = dbs['manycore_params']['input_regs']
+        self.work_regs = dbs['manycore_params']['working_regs']
+
+        self.compile_instrs()
+
+    def compile_instrs(self):
+        
+        input_num = len([x for x in self.graph_unit.source_nodes if type(x) != str])
+        if input_num > self.input_regs:
+            raise Exception("MONARCH - Too many input registers are needed to realise the system.")
+        
+        output_num = len([x for x in self.graph_unit.sink_nodes if type(x) != str])
+        if output_num > self.work_regs:
+            raise Exception("MONARCH - Too many input registers are needed to realise the system.")
+
+        instrs = [[] for _ in range(self.cores)]
+        core_i = 0
+        
+        # Build the initial register map
+        reg_map = []
+        output_n = len([x for x in self.graph_unit.sink_nodes if type(x) != str])
+        for i in range(self.work_regs):
+            if i < output_n:
+                reg_map.append('output_{}'.format(i))
+            else:
+                reg_map.append(None)
+        
+        for i in range(1):
+            comp_source_ops = True
+            sink_i = -1
+            while comp_source_ops:
+                sink_i += 1
+                target_column = self.graph_unit.conn_mat[:, sink_i]
+                source_is = target_column.nonzero()
+                for ind in source_is[0]:
+                    if type(self.graph_unit.source_nodes[ind]) != str:
+                        comp_source_ops = False
+                    else:
+                        comp_source_ops = True
+            
+            op = self.graph_unit.sink_nodes[sink_i].split("_")[0]
+            in_0 = self.graph_unit.source_nodes[np.where(target_column == 1.0)][0]
+            in_1 = self.graph_unit.source_nodes[np.where(target_column == 2.0)][0]
+            instrs[core_i].append([op, in_0, in_1])
+
+        print(instrs)
+            
 class HardwareUnit:
 
     def __init__(self, target_unit, args, init_state, dt, name="unit_1"):
