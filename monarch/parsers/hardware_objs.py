@@ -1,7 +1,7 @@
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
-from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs
+from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results
 from sympy import Symbol
 import json
 import os
@@ -312,7 +312,7 @@ class ManycoreUnit:
             if i < len(input_nodes):
                 reg_map.append({
                     "d": input_nodes[i],
-                    "s": "lock"
+                    "s": "valid"
                 })
             else:
                 reg_map.append({
@@ -329,6 +329,16 @@ class ManycoreUnit:
             reg_map, completed_outs = update_clk_cycle(reg_map, 
                 terminal_instrs, 
                 completed_outs
+            )
+
+            # Determine which instruction results in the register map are 
+            # stale and can be overwritten with a new instruction.
+            reg_map =find_stale_results(
+                reg_map,
+                self.graph_unit.conn_mat,
+                self.graph_unit.source_nodes,
+                self.graph_unit.sink_nodes,
+                completed
             )
 
             new_instrs = []
@@ -358,9 +368,10 @@ class ManycoreUnit:
             # Append the instructions to the core instruction threads
             for i, new_instr in enumerate(new_instrs):
                 instrs[i].append(new_instr)
-        
-        disp_exec_thread(instrs, 0)
+
         disp_reg_map(reg_map)
+
+        disp_exec_thread(instrs, 0)
         
 class HardwareUnit:
 

@@ -5,8 +5,8 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, completed=[
     # based on available operands.
 
     # Get the list of available results that can be computed.
-    # If lock, the node is an input. If valid, it is an intermediate result that has been computed.
-    avail_dat = [x["d"] for x in reg_map if x["d"] if x["s"] == 'lock' or x["s"] == "valid"]
+    # If valid, it is an intermediate result that has been computed.
+    avail_dat = [x["d"] for x in reg_map if x["d"] if x["s"] == "valid"]
 
     comp_source_ops = True
     sink_i = -1
@@ -69,6 +69,24 @@ def update_reg_map(reg_map, core_instr, terminal_instrs, out_reg_offset, dbs):
             reg_map[reg_i]["s"] = "wait"
 
             return reg_map
+
+    return reg_map
+
+def find_stale_results(reg_map, conn_mat, source_nodes, sink_nodes, completed):
+
+    stringified_source = [str(x) for x in source_nodes]
+    for i, reg in enumerate(reg_map):
+        if reg["d"] in stringified_source:
+            # Extract dependent operations
+            source_i     = stringified_source.index(reg['d'])
+            dependent_is = conn_mat[source_i, :].nonzero()[0]
+            
+            complete_is = [x for x in dependent_is if x in completed]
+            
+            if len(complete_is) == len(dependent_is):
+                # All of the dependents have been computed. Dereference the register
+                reg_map[i]['s'] = "avail"
+                reg_map[i]['d'] = None
 
     return reg_map
 
