@@ -1,7 +1,7 @@
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
-from parsers.asm_compiler import allocate_core_instr
+from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs
 from sympy import Symbol
 import json
 import os
@@ -298,15 +298,17 @@ class ManycoreUnit:
             raise Exception("MONARCH - Too many input registers are needed to realise the system.")
 
         instrs = [[] for _ in range(self.cores)]
-        core_i = 0
-        
-        # Build the output register map
-        out_reg_map = []
-        out_reg_map = [{"d": None, "s": "avail"} for _ in range(self.output_regs)]
 
-        # Initialise the input and working registers. 
+        # Determine the output instructions.
+        terminal_instrs = find_terminal_instrs(
+            self.graph_unit.conn_mat, 
+            self.graph_unit.source_nodes,
+            self.graph_unit.sink_nodes
+        )    
+
+        # Initialise the register map. 
         reg_map = []
-        for i in range(self.work_regs):
+        for i in range(self.work_regs + self.output_regs):
             if i < len(input_nodes):
                 reg_map.append({
                     "d": input_nodes[i],
@@ -319,20 +321,47 @@ class ManycoreUnit:
                 })
         
         completed = []
-        for i in range(self.cores):
+        completed_outs = 0
+
+        while completed_outs != len(terminal_instrs):
             
-            op, completed = allocate_core_instr(
-                self.graph_unit.conn_mat, 
-                self.graph_unit.source_nodes, 
-                self.graph_unit.sink_nodes,
-                reg_map,
-                completed
+            # Update the registers.
+            reg_map, completed_outs = update_clk_cycle(reg_map, 
+                terminal_instrs, 
+                completed_outs
             )
 
-            instrs[core_i].append(op)
+            new_instrs = []
 
-        print(instrs, completed)
+            # Allocate an instruction to each core.
+            for i in range(self.cores):
+                op, completed = allocate_core_instr(
+                    self.graph_unit.conn_mat, 
+                    self.graph_unit.source_nodes, 
+                    self.graph_unit.sink_nodes,
+                    reg_map,
+                    completed
+                )
+
+                new_instrs.append(op)
+
+            # Add each instruction to the register map.
+            for core_instr in new_instrs:
+                reg_map = update_reg_map(
+                    reg_map, 
+                    core_instr, 
+                    terminal_instrs, 
+                    self.work_regs, 
+                    self.arch_dbs
+                )
             
+            # Append the instructions to the core instruction threads
+            for i, new_instr in enumerate(new_instrs):
+                instrs[i].append(new_instr)
+        
+        disp_exec_thread(instrs, 0)
+        disp_reg_map(reg_map)
+        
 class HardwareUnit:
 
     def __init__(self, target_unit, args, init_state, dt, name="unit_1"):
