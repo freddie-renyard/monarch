@@ -114,3 +114,17 @@ def disp_exec_thread(instrs, index=0):
 
     for instr in instrs[index]:
         print("{}   {}, {}, {}".format(instr[0], instr[3], instr[1], instr[2]))
+
+def instr_to_asm(instr, reg_map):
+
+    instr = [str(x) for x in instr] # Ensure instruction is stringified.
+
+    op = instr[0]
+    regs = [None, None, None]
+    
+    for i, reg in enumerate(reg_map):
+        if reg["d"] in instr[1:4]:
+            op_index = instr[1:4].index(reg["d"])
+            regs[op_index] = "r{}".format(i)
+
+    return [op, *regs]

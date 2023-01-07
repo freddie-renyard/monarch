@@ -1,7 +1,7 @@
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
-from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results
+from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm
 from sympy import Symbol
 import json
 import os
@@ -298,6 +298,7 @@ class ManycoreUnit:
             raise Exception("MONARCH - Too many input registers are needed to realise the system.")
 
         instrs = [[] for _ in range(self.cores)]
+        asm    = [[] for _ in range(self.cores)]
 
         # Determine the output instructions.
         terminal_instrs = find_terminal_instrs(
@@ -369,9 +370,14 @@ class ManycoreUnit:
             for i, new_instr in enumerate(new_instrs):
                 instrs[i].append(new_instr)
 
+            # Append the instructions to the main assembly thread, which
+            # will be compiled to machine code.
+            for i, new_instr in enumerate(new_instrs):
+                asm_instr = instr_to_asm(new_instr, reg_map)
+                asm[i].append(asm_instr)
+            
         disp_reg_map(reg_map)
-
-        disp_exec_thread(instrs, 0)
+        disp_exec_thread(asm, 0)
         
 class HardwareUnit:
 
