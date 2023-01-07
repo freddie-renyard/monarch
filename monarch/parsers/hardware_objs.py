@@ -280,16 +280,17 @@ class ManycoreUnit:
             dbs = json.loads(file.read())
             self.arch_dbs = dbs
 
-        self.cores = dbs['manycore_params']['cores']
-        self.input_regs = dbs['manycore_params']['input_regs']
-        self.work_regs = dbs['manycore_params']['working_regs']
+        self.cores       = dbs['manycore_params']['cores']
+        self.work_regs   = dbs['manycore_params']['working_regs']
+        self.output_regs = dbs['manycore_params']['output_regs']
 
         self.compile_instrs()
 
     def compile_instrs(self):
         
-        input_num = len([x for x in self.graph_unit.source_nodes if type(x) != str])
-        if input_num > self.input_regs:
+        input_nodes = [str(x) for x in self.graph_unit.source_nodes if type(x) != str]
+        input_num = len(input_nodes)
+        if input_num > self.work_regs:
             raise Exception("MONARCH - Too many input registers are needed to realise the system.")
         
         output_num = len([x for x in self.graph_unit.sink_nodes if type(x) != str])
@@ -299,15 +300,23 @@ class ManycoreUnit:
         instrs = [[] for _ in range(self.cores)]
         core_i = 0
         
-        
-        # Build the initial register map
+        # Build the output register map
+        out_reg_map = []
+        out_reg_map = [{"d": None, "s": "avail"} for _ in range(self.output_regs)]
+
+        # Initialise the input and working registers. 
         reg_map = []
-        output_n = len([x for x in self.graph_unit.sink_nodes if type(x) != str])
         for i in range(self.work_regs):
-            if i < output_n:
-                reg_map.append('output_{}'.format(i))
+            if i < len(input_nodes):
+                reg_map.append({
+                    "d": input_nodes[i],
+                    "s": "lock"
+                })
             else:
-                reg_map.append(None)
+                reg_map.append({
+                    "d": None,
+                    "s": "avail"
+                })
         
         completed = []
         for i in range(self.cores):
@@ -316,6 +325,7 @@ class ManycoreUnit:
                 self.graph_unit.conn_mat, 
                 self.graph_unit.source_nodes, 
                 self.graph_unit.sink_nodes,
+                reg_map,
                 completed
             )
 

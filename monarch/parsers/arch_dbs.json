@@ -6,8 +6,8 @@
     },
     "manycore_params": {
         "cores": 3,
-        "working_regs": 32,
-        "input_regs": 32
+        "working_regs": 24,
+        "output_regs": 8
     },
     "opcodes": {
         "mult": {
