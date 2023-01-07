@@ -1,6 +1,7 @@
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
+from parsers.asm_compiler import allocate_core_instr
 from sympy import Symbol
 import json
 import os
@@ -298,6 +299,7 @@ class ManycoreUnit:
         instrs = [[] for _ in range(self.cores)]
         core_i = 0
         
+        
         # Build the initial register map
         reg_map = []
         output_n = len([x for x in self.graph_unit.sink_nodes if type(x) != str])
@@ -307,25 +309,19 @@ class ManycoreUnit:
             else:
                 reg_map.append(None)
         
-        for i in range(1):
-            comp_source_ops = True
-            sink_i = -1
-            while comp_source_ops:
-                sink_i += 1
-                target_column = self.graph_unit.conn_mat[:, sink_i]
-                source_is = target_column.nonzero()
-                for ind in source_is[0]:
-                    if type(self.graph_unit.source_nodes[ind]) != str:
-                        comp_source_ops = False
-                    else:
-                        comp_source_ops = True
+        completed = []
+        for i in range(self.cores):
             
-            op = self.graph_unit.sink_nodes[sink_i].split("_")[0]
-            in_0 = self.graph_unit.source_nodes[np.where(target_column == 1.0)][0]
-            in_1 = self.graph_unit.source_nodes[np.where(target_column == 2.0)][0]
-            instrs[core_i].append([op, in_0, in_1])
+            op, completed = allocate_core_instr(
+                self.graph_unit.conn_mat, 
+                self.graph_unit.source_nodes, 
+                self.graph_unit.sink_nodes,
+                completed
+            )
 
-        print(instrs)
+            instrs[core_i].append(op)
+
+        print(instrs, completed)
             
 class HardwareUnit:
 

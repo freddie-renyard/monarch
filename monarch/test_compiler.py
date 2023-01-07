@@ -1,7 +1,7 @@
 from parsers.hardware_objs import HardwareUnit, CFGU, ManycoreUnit
 from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
-from simulators.simulators import pipeline_eumulator
+from simulators.simulators import pipeline_eumulator, simulate_system
 
 def oregonator_model():
 
@@ -52,7 +52,7 @@ def hodgkin_huxley():
         "V_Na": 115.0,
         "V_L": 10.613,
         "Cm": 1.0,
-        "I_in": 1,
+        "I_in": 10,
         "e": 2.71
     }
 
@@ -145,9 +145,26 @@ if __name__ == "__main__":
     compiled_cfg = eq_to_cfg(test_equ)
 
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
+    hardware_unit = ManycoreUnit(pipelined_cfg, args, init_state, dt=dt)
+
+
+"""
+    test_equ, args, init_state = hodgkin_huxley()
+    
+    simulate_system(
+        test_equ, init_state, args, sim_time=100, dt=0.001
+    )
+"""
+
+"""
+    test_equ, args, init_state = lorenz_attractor()
+
+    dt = 1.0/128.0
+    compiled_cfg = eq_to_cfg(test_equ)
+
+    pipelined_cfg = cfg_to_pipeline(compiled_cfg)
     #pipelined_cfg.show_report()
     
-    """
     pipeline_eumulator(
         test_equ, 
         pipelined_cfg, 
@@ -156,7 +173,7 @@ if __name__ == "__main__":
         sim_time=dt * 100,
         dt=dt
     )
-    """
 
     cfgu = CFGU()
     hardware_unit = ManycoreUnit(pipelined_cfg, args, init_state, dt=dt)
+"""
