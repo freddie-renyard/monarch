@@ -131,7 +131,7 @@ def modify_ops(cfg, id=0, assoc_dat={}):
     # Check for any associated data that needs to be saved regarding the operation.
     assoc_dat = {}
     if op_type == 'lut':
-        assoc_dat[cfg['op']] = cfg['fn']
+        assoc_dat[cfg['op']] = cfg['base']
 
     max_id = 0
     for i, input_node in enumerate(cfg['inputs']):
@@ -181,7 +181,7 @@ def modify_op(cfg, target_op, target_id):
         cfg['op'] += "_" + str(target_id)
 
         if target_op == 'lut':
-            assoc_dat[cfg['op']] = cfg['fn']
+            assoc_dat[cfg['op']] = cfg['base']
 
         return cfg, target_id+1, assoc_dat
     else:
@@ -196,8 +196,6 @@ def modify_op(cfg, target_op, target_id):
         return None
     
 def cfg_to_mats(cfg, output_var, dbs, start_id, report=False):
-
-
     """
     # Append a unique identifier to every operator node in graph.
     cfg, max_id, assoc_dat = modify_ops(cfg, id=start_id)
@@ -279,7 +277,7 @@ def combine_trees(system_data):
         
         input_node_i = list(conn_mat[:, i] > 0).index(True)
         dly_mat[input_node_i, i] = diff_from_max
-    
+
     return GraphUnit(
         conn_mat,
         dly_mat,

@@ -1,7 +1,7 @@
 import numpy as np
 from parsers.bin_compiler import convert_to_uint
 
-def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, dbs, primaries=[], completed=[]):
+def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, dbs, primaries=[], completed=[]):
     # Searches through the source nodes and allocates an instruction
     # based on available operands.
 
@@ -45,12 +45,21 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, dbs, primar
                 comp_source_ops = True
                 break       
     
-    op   = sink_nodes[sink_i].split("_")[0]
+    op = sink_nodes[sink_i].split("_")[0]
 
     if dbs['opcodes'][op]['input_num'] == 1:
         if op == 'square':
             in_0 = source_nodes[np.where(target_column == 1.0)][0]
             in_1 = in_0
+        elif op == 'lut':
+            if str(sink_nodes[sink_i]) in assoc_dat.keys():
+                in_0 = source_nodes[np.where(target_column == 1.0)][0]
+                try:
+                    in_1 = dbs["lut_functions"][assoc_dat[sink_nodes[sink_i]]]['subopcode']
+                except:
+                    raise Exception("Exponent base {} not currently supported for lut instruction.".format(assoc_dat[sink_nodes[sink_i]]))
+            else:
+                raise Exception("Associated LUT data not found for {}".format(sink_nodes[sink_i]))
         else:
             raise Exception("MONARCH - This 1-input instruction isn't supported: {}".format(op))
     else:
@@ -136,13 +145,20 @@ def disp_exec_thread(instrs, index=0):
     for instr in instrs[index]:
         print("{}   {}, {}, {}".format(instr[0], instr[3], instr[1], instr[2]))
 
-def instr_to_asm(instr, reg_map):
+def instr_to_asm(instr, reg_map, const_names):
 
     instr = [str(x) for x in instr] # Ensure instruction is stringified.
 
     op = instr[0]
     regs = [None, None, None]
-    
+
+    """
+    for i, input_operand in enumerate(instr[1:3]):
+        if input_operand in const_names:
+            op_is = np.where(np.array(instr[1:3]) == input_operand)[0]
+            for op_i in op_is:
+                regs[op_i] = "c{}".format(const_names.index(input_operand))
+    """
     for i, reg in enumerate(reg_map):
         if reg["d"] in instr[1:]:
             op_is = np.where(np.array(instr[1:]) == reg["d"])[0]

@@ -3,7 +3,7 @@ from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
 from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
 from parsers.asm_compiler import instr_to_machcode, determine_primary
-from sympy import Symbol
+from sympy import Symbol, sympify, Float
 import json
 import os
 
@@ -285,6 +285,30 @@ class ManycoreUnit:
         self.work_regs   = dbs['manycore_params']['working_regs']
         self.output_regs = dbs['manycore_params']['output_regs']
 
+        # Determine the inputs and the constants.
+        # First type of constants are inferred from the equations by the tree compiler.
+        consts = {}
+        for node in self.graph_unit.source_nodes:
+            if type(node) != str and 'const' in str(node):
+                # Extract the value of the constant.
+                num = str(node).split("_")[0]
+                real_num = Float(sympify(num))
+                consts[str(node)] = real_num
+
+        # Second type of constants are specified by the user/inferred from context
+        # i.e. dt will almost always be a constant.
+        consts = {
+            **consts, 
+            "dt": dt
+        }
+
+        # Convert the constants to a list to ensure no reordering during compilation.
+        self.consts = []
+        self.const_names = []
+        for key in consts:
+            self.consts.append(consts[key]) 
+            self.const_names.append(key) 
+
         asm = self.compile_instrs()
 
         self.report_exec_time(asm)
@@ -293,9 +317,9 @@ class ManycoreUnit:
     def compile_instrs(self, verbose=False):
         
         input_nodes = [str(x) for x in self.graph_unit.source_nodes if type(x) != str]
-        input_num = len(input_nodes)
+        input_num = len([str(x) for x in input_nodes if x not in self.const_names])
         if input_num > self.work_regs:
-            raise Exception("MONARCH - Too many input registers are needed to realise the system.")
+            raise Exception("MONARCH - Too many input registers ({} registers) are needed to realise the system.".format(input_num))
         
         output_num = len([x for x in self.graph_unit.sink_nodes if type(x) != str])
         if output_num > self.work_regs:
@@ -363,6 +387,7 @@ class ManycoreUnit:
                     self.graph_unit.source_nodes, 
                     self.graph_unit.sink_nodes,
                     reg_map,
+                    self.graph_unit.assoc_dat,
                     self.arch_dbs,
                     primaries,
                     completed
@@ -387,9 +412,9 @@ class ManycoreUnit:
             # Append the instructions to the main assembly thread, which
             # will be compiled to machine code.
             for i, new_instr in enumerate(new_instrs):
-                asm_instr = instr_to_asm(new_instr, reg_map)
+                asm_instr = instr_to_asm(new_instr, reg_map, self.const_names)
                 asm[i].append(asm_instr)
-        
+
         if verbose:
             for i, instr_asm in enumerate(instrs):
                 print("// MONARCH - CORE {} ASSEMBLY".format(i))

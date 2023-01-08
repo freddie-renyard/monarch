@@ -100,5 +100,10 @@
             "subopcode": 1,
             "type": "0r"
         }
+    },
+    "lut_functions": {
+        "e": {
+            "subopcode": 0
+        }
     }
 }

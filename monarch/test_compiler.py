@@ -139,15 +139,14 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = cicr()
+    test_equ, args, init_state = hodgkin_huxley()
 
     dt = 1.0/128.0
     compiled_cfg = eq_to_cfg(test_equ)
-
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
+
     #pipelined_cfg.show_report()
     hardware_unit = ManycoreUnit(pipelined_cfg, args, init_state, dt=dt)
-
 
 """
     test_equ, args, init_state = hodgkin_huxley()

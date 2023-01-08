@@ -178,6 +178,19 @@ def construct_balanced_tree(input_args, opcode="", add_squarers=False):
             ]
         }
 
+def verify_base(base):
+    # Verify that a base of an exponentiation is supported by MONArch.
+    
+    # Open architecture database.
+    script_dir = os.path.dirname(__file__)
+    rel_path = "arch_dbs.json"
+    abs_file_path = os.path.join(script_dir, rel_path)
+    
+    with open(abs_file_path) as file:
+        dbs = json.loads(file.read())
+
+    return str(base) in dbs['lut_functions']
+
 def check_power_op(cfg):
 
     base_node = cfg['inputs'][0]
@@ -200,11 +213,12 @@ def check_power_op(cfg):
     if ((type(base_node) == Symbol) or (type(base_node) == dict)) and type(exp_node) == sympy.Integer:
         return construct_balanced_tree([base_node] * int(exp_node), "mult", add_squarers=True)
 
-    # Operation: n^x -> LUT(x)    
-    if (base_node.is_number) and ((type(exp_node) == Symbol) or type(base_node) == dict):
+    # Operation: n^x -> LUT(x) 
+    if verify_base(base_node) and ((type(exp_node) == Symbol) or type(exp_node) == dict):
         return {
             "op": 'lut',
             "fn": lambda x: int(base_node) ** x,
+            "base": str(base_node),
             "inputs": [exp_node]
         }
 
