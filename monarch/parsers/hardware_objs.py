@@ -286,7 +286,8 @@ class ManycoreUnit:
         self.output_regs = dbs['manycore_params']['output_regs']
 
         asm = self.compile_instrs()
-        machine_code = self.asm_to_machcode(asm)
+        
+        self.asm_to_machcode(asm)
 
     def compile_instrs(self):
         
@@ -336,7 +337,7 @@ class ManycoreUnit:
 
             # Determine which instruction results in the register map are 
             # stale and can be overwritten with a new instruction.
-            reg_map =find_stale_results(
+            reg_map = find_stale_results(
                 reg_map,
                 self.graph_unit.conn_mat,
                 self.graph_unit.source_nodes,
@@ -377,7 +378,7 @@ class ManycoreUnit:
             for i, new_instr in enumerate(new_instrs):
                 asm_instr = instr_to_asm(new_instr, reg_map)
                 asm[i].append(asm_instr)
-        
+
         return asm
     
     def asm_to_machcode(self, asm):

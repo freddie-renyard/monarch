@@ -7,7 +7,7 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, completed=[
 
     # Get the list of available results that can be computed.
     # If valid, it is an intermediate result that has been computed.
-    avail_dat = [x["d"] for x in reg_map if x["d"] if x["s"] == "valid"]
+    avail_dat = [x["d"] for x in reg_map if x["s"] == "valid"]
 
     comp_source_ops = True
     sink_i = -1
@@ -33,13 +33,14 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, completed=[
                     comp_source_ops = False
             else:
                 comp_source_ops = True
-        
+                break
+    
     op   = sink_nodes[sink_i].split("_")[0]
     in_0 = source_nodes[np.where(target_column == 1.0)][0]
     in_1 = source_nodes[np.where(target_column == 2.0)][0]
     out  = sink_nodes[sink_i]
     completed.append(sink_i)
-
+    
     return [op, in_0, in_1, out], completed
 
 def find_terminal_instrs(conn_mat, source_nodes, sink_nodes):
@@ -174,7 +175,6 @@ def instr_to_machcode(instr, dbs):
     reg_width = dbs["manycore_params"]["machcode_params"]['reg_ptr_width']
     if op_dat["type"] == "3r":
         # This instruction has two input register operands and one output register.
-        
         in_reg_0_bin = reg_ptr_to_bin(instr[1], reg_width)
         in_reg_1_bin = reg_ptr_to_bin(instr[2], reg_width)
         out_reg_bin  = reg_ptr_to_bin(instr[3], reg_width)
