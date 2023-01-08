@@ -1,7 +1,7 @@
 import numpy as np
 from parsers.bin_compiler import convert_to_uint
 
-def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, primaries=[], completed=[]):
+def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, dbs, primaries=[], completed=[]):
     # Searches through the source nodes and allocates an instruction
     # based on available operands.
 
@@ -34,7 +34,7 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, primaries=[
         # Skip the sink node if it is an output node.
         if type(sink_nodes[sink_i]) != str:
             continue
-        
+
         # Check each of the input source nodes for the column to
         # see if their results are available.
         for ind in source_is[0]:
@@ -43,14 +43,23 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, primaries=[
                     comp_source_ops = False
             else:
                 comp_source_ops = True
-                break
+                break       
     
     op   = sink_nodes[sink_i].split("_")[0]
-    in_0 = source_nodes[np.where(target_column == 1.0)][0]
-    in_1 = source_nodes[np.where(target_column == 2.0)][0]
+
+    if dbs['opcodes'][op]['input_num'] == 1:
+        if op == 'square':
+            in_0 = source_nodes[np.where(target_column == 1.0)][0]
+            in_1 = in_0
+        else:
+            raise Exception("MONARCH - This 1-input instruction isn't supported: {}".format(op))
+    else:
+        in_0 = source_nodes[np.where(target_column == 1.0)][0]
+        in_1 = source_nodes[np.where(target_column == 2.0)][0]
+
     out  = sink_nodes[sink_i]
     completed.append(sink_i)
-    
+
     return [op, in_0, in_1, out], completed
 
 def find_terminal_instrs(conn_mat, source_nodes, sink_nodes):
@@ -135,9 +144,10 @@ def instr_to_asm(instr, reg_map):
     regs = [None, None, None]
     
     for i, reg in enumerate(reg_map):
-        if reg["d"] in instr[1:4]:
-            op_index = instr[1:4].index(reg["d"])
-            regs[op_index] = "r{}".format(i)
+        if reg["d"] in instr[1:]:
+            op_is = np.where(np.array(instr[1:]) == reg["d"])[0]
+            for op_i in op_is:
+                regs[op_i] = "r{}".format(i)
 
     return [op, *regs]
 

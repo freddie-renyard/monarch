@@ -139,7 +139,7 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = oregonator_model()
+    test_equ, args, init_state = cicr()
 
     dt = 1.0/128.0
     compiled_cfg = eq_to_cfg(test_equ)

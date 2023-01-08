@@ -290,7 +290,7 @@ class ManycoreUnit:
         self.report_exec_time(asm)
         self.asm_to_machcode(asm)
 
-    def compile_instrs(self):
+    def compile_instrs(self, verbose=False):
         
         input_nodes = [str(x) for x in self.graph_unit.source_nodes if type(x) != str]
         input_num = len(input_nodes)
@@ -363,6 +363,7 @@ class ManycoreUnit:
                     self.graph_unit.source_nodes, 
                     self.graph_unit.sink_nodes,
                     reg_map,
+                    self.arch_dbs,
                     primaries,
                     completed
                 )
@@ -389,6 +390,12 @@ class ManycoreUnit:
                 asm_instr = instr_to_asm(new_instr, reg_map)
                 asm[i].append(asm_instr)
         
+        if verbose:
+            for i, instr_asm in enumerate(instrs):
+                print("// MONARCH - CORE {} ASSEMBLY".format(i))
+                disp_exec_thread([instr_asm])
+                print()
+
         return asm
     
     def asm_to_machcode(self, asm):

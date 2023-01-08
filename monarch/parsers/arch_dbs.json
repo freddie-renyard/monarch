@@ -74,6 +74,10 @@
             "opcode": 0,
             "type": "3r"
         },
+        "square": {
+            "opcode": 0,
+            "type": "3r"
+        },
         "add": {
             "opcode": 1,
             "type": "3r"
