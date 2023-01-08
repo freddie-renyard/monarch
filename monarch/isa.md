@@ -76,67 +76,24 @@ This produces a 20-bit instruction. This can be modified for larger register map
 
 # Opcodes
 
-| Instruction Function           | Assembly           | Encoding | Notes |
-| -------------------------------|:------------------:| --------:| -----:|
-| Multiplication with registers  | `mult`             | `0b00000`|       |
-| Addition with registers        | `add`              | `0b00001`|       |
-| Subtraction with registers     | `sub`              | `0b00010`|       |
-| Division with registers        | `div`              | `0b00011`|       |
+| Instruction Function           | Assembly  | Instruction Type | Encoding| Notes |
+| -------------------------------|:---------:| ----------------:| -------:|
+| Multiplication with registers  | `mult`    | `0b00000`        | `3r`    |
+| Addition with registers        | `add`     | `0b00001`        | `3r`    |
+| Subtraction with registers     | `sub`     | `0b00010`        | `3r`    |
+| Division with registers        | `div`     | `0b00011`        | `3r`    |
+| Lookup with registers          | `lut`     | `0b00100`        | `2rl`   | The second operand encodes the table to use.|
+| Multiplication with constant   | `mult_c`  | `0b00000`        | `2rc`   |
+| Addition with constant         | `add_c`   | `0b00001`        | `2rc`   |
+| Subtraction with constant      | `sub_c`   | `0b00010`        | `2rc`   |
+| Division with constant         | `div_c`   | `0b00011`        | `2rc`   |
+| No operation                   | `nop`     | `0b11111`        | `0r`    | The first operand encodes the number of cycles to stall |
 
+The lookup table block in the ALU uses its second argument to select the table.
 
-Division with registers
-- Assembly: div
-- Encoding: 0b00011
-
-Lookup with registers
-- Assembly: lut
-- Encoding: 0b00100
-- The second operand encodes the table to use.
-
-Multiplication with one immediate
-- Assembly: mult_imm
-- Encoding: 0b10000
-
-Addition with one immediate
-- Assembly: add_imm
-- Encoding: 0b10001
-
-Subtraction with one immediate
-- Assembly: sub_imm
-- Encoding: 0b10010
-
-Division with one immediate
-- Assembly: div_imm
-- Encoding: 0b10011
-
-Multiplication with constant
-- Assembly: mult_c
-- Encoding: 0b01000
-
-Addition with one immediate
-- Assembly: add_c
-- Encoding: 0b01001
-
-Subtraction with one immediate
-- Assembly: sub_c
-- Encoding: 0b01010
-
-Division with one immediate
-- Assembly: div_c
-- Encoding: 0b01011
-
-Lookup with registers
-- Assembly: lut_c
-- Encoding: 0b01100
-- The second operand encodes the table to use.
-
-No-operation
-- Assembly: nop
-- Encoding: 0b11111
-- All non-opcode bits are loaded into the stall register, stalling core execution
-
-Lookup table encodings
-- e ^ x - 0b00000
+| Lookup Table Function | Encoding |
+| ----------------------|:---------|
+| `e ^ x`               | `0b00000`|
 
 # CSRs
 
