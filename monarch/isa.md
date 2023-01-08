@@ -76,17 +76,13 @@ This produces a 20-bit instruction. This can be modified for larger register map
 
 # Opcodes
 
-Multiplication with registers
-- Assembly: mult
-- Encoding: 0b00000
+| Instruction Function           | Assembly           | Encoding | Notes |
+| -------------------------------|:------------------:| --------:| -----:|
+| Multiplication with registers  | `mult`             | `0b00000`|       |
+| Addition with registers        | `add`              | `0b00001`|       |
+| Subtraction with registers     | `sub`              | `0b00010`|       |
+| Division with registers        | `div`              | `0b00011`|       |
 
-Addition with registers
-- Assembly: add
-- Encoding: 0b00001
-
-Subtraction with registers
-- Assembly: sub
-- Encoding: 0b00010
 
 Division with registers
 - Assembly: div
