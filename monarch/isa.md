@@ -67,10 +67,12 @@ Each core consists of one program memory block and program counter, and the foll
 
 Instructions are encoded as follows:
 
+`
 Bits [4:0] - Opcode
 Bits [8:4] - Input register 1
 Bits [13:9] - Input register 2
 Bits [18:14] - Output register
+`
 
 This produces a 20-bit instruction. This can be modified for larger register maps.
 
