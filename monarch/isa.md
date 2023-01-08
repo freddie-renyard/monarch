@@ -77,16 +77,16 @@ This produces a 20-bit instruction. This can be modified for larger register map
 # Opcodes
 
 | Instruction Function           | Assembly  | Instruction Type | Encoding| Notes |
-| -------------------------------|:---------:| ----------------:| -------:|
-| Multiplication with registers  | `mult`    | `0b00000`        | `3r`    |
-| Addition with registers        | `add`     | `0b00001`        | `3r`    |
-| Subtraction with registers     | `sub`     | `0b00010`        | `3r`    |
-| Division with registers        | `div`     | `0b00011`        | `3r`    |
+| -------------------------------|:---------:| ----------------:| -------:| -----:|
+| Multiplication with registers  | `mult`    | `0b00000`        | `3r`    |       |
+| Addition with registers        | `add`     | `0b00001`        | `3r`    |       |
+| Subtraction with registers     | `sub`     | `0b00010`        | `3r`    |       |
+| Division with registers        | `div`     | `0b00011`        | `3r`    |       |
 | Lookup with registers          | `lut`     | `0b00100`        | `2rl`   | The second operand encodes the table to use.|
-| Multiplication with constant   | `mult_c`  | `0b00000`        | `2rc`   |
-| Addition with constant         | `add_c`   | `0b00001`        | `2rc`   |
-| Subtraction with constant      | `sub_c`   | `0b00010`        | `2rc`   |
-| Division with constant         | `div_c`   | `0b00011`        | `2rc`   |
+| Multiplication with constant   | `mult_c`  | `0b00000`        | `2rc`   |       |
+| Addition with constant         | `add_c`   | `0b00001`        | `2rc`   |       |
+| Subtraction with constant      | `sub_c`   | `0b00010`        | `2rc`   |       |
+| Division with constant         | `div_c`   | `0b00011`        | `2rc`   |       |
 | No operation                   | `nop`     | `0b11111`        | `0r`    | The first operand encodes the number of cycles to stall |
 
 The lookup table block in the ALU uses its second argument to select the table.
