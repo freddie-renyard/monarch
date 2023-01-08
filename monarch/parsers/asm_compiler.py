@@ -1,4 +1,5 @@
 import numpy as np
+from parsers.bin_compiler import convert_to_uint
 
 def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, completed=[]):
     # Searches through the source nodes and allocates an instruction
@@ -154,3 +155,34 @@ def collapse_nops(asm):
         )
 
     return new_asm
+
+def reg_ptr_to_bin(reg, width):
+    return convert_to_uint(int(reg.split("r")[1]), width)
+
+def instr_to_machcode(instr, dbs):
+
+    machcode = ''
+
+    op = instr[0]
+    try:
+        op_dat = dbs["isa"][op]
+    except:
+        raise Exception("MONARCH - Unsupported operation '{}'.".format(op))
+
+    machcode += convert_to_uint(op_dat["opcode"], dbs["manycore_params"]["machcode_params"]['instr_width'])
+
+    reg_width = dbs["manycore_params"]["machcode_params"]['reg_ptr_width']
+    if op_dat["type"] == "3r":
+        # This instruction has two input register operands and one output register.
+        
+        in_reg_0_bin = reg_ptr_to_bin(instr[1], reg_width)
+        in_reg_1_bin = reg_ptr_to_bin(instr[2], reg_width)
+        out_reg_bin  = reg_ptr_to_bin(instr[3], reg_width)
+
+        machcode = out_reg_bin + in_reg_1_bin + in_reg_0_bin + machcode
+    elif op_dat['type'] == "0r":
+        # The instruction takes no register operands.
+        if op == 'nop':
+            machcode = '0'*reg_width*3 + machcode
+
+    return machcode + "\n"

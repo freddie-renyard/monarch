@@ -2,6 +2,7 @@ import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
 from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
+from parsers.asm_compiler import instr_to_machcode
 from sympy import Symbol
 import json
 import os
@@ -388,6 +389,11 @@ class ManycoreUnit:
             core_asm = collapse_nops(core_asm)
             disp_exec_thread([core_asm])
 
+        for i, core_asm in enumerate(asm):
+            machcode_bin = ''
+            for instr in core_asm:
+                machcode_bin += instr_to_machcode(instr, self.arch_dbs)
+            
 class HardwareUnit:
 
     def __init__(self, target_unit, args, init_state, dt, name="unit_1"):

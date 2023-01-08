@@ -7,7 +7,11 @@
     "manycore_params": {
         "cores": 1,
         "working_regs": 24,
-        "output_regs": 8
+        "output_regs": 8,
+        "machcode_params": {
+            "instr_width": 5,
+            "reg_ptr_width": 5
+        }
     },
     "opcodes": {
         "mult": {
@@ -63,6 +67,28 @@
             "precedence": false,
             "op": "None",
             "sympy_op": "None"
+        }
+    },
+    "isa": {
+        "mult": {
+            "opcode": 0,
+            "type": "3r"
+        },
+        "add": {
+            "opcode": 1,
+            "type": "3r"
+        },
+        "sub": {
+            "opcode": 2,
+            "type": "3r"
+        },
+        "div": {
+            "opcode": 3,
+            "type": "3r"
+        },
+        "nop": {
+            "opcode": 31,
+            "type": "0r"
         }
     }
 }

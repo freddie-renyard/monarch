@@ -9,6 +9,11 @@ def convert_to_fixed(target, width, radix):
 
     return bin_str
 
+def convert_to_uint(target, width):
+    
+    bin_str = str(BitArray(uint=target, length=width).bin)
+    return bin_str
+
 def convert_to_hex(number):
     if len(number) % 4 == 0:
         return str(BitArray(bin=number))[2:]
