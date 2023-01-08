@@ -1,3 +1,4 @@
+from pickletools import opcodes
 import numpy as np
 from parsers.bin_compiler import convert_to_uint
 
@@ -21,7 +22,7 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, 
     i = -1
     while comp_source_ops:
         i += 1
-        
+
         # Add a NOP operation if there are no available data to operate on
         if i == len(sink_nodes):
             return ["nop", None, None, None], completed
@@ -44,7 +45,7 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, 
             else:
                 comp_source_ops = True
                 break       
-    
+
     op = sink_nodes[sink_i].split("_")[0]
 
     if dbs['opcodes'][op]['input_num'] == 1:
@@ -152,6 +153,10 @@ def instr_to_asm(instr, reg_map, const_names):
     op = instr[0]
     regs = [None, None, None]
 
+    # Ensure that the subopcode for the lut instruction is passed through.
+    if instr[0] == 'lut':
+        regs[1] = int(instr[2])
+
     """
     for i, input_operand in enumerate(instr[1:3]):
         if input_operand in const_names:
@@ -159,6 +164,7 @@ def instr_to_asm(instr, reg_map, const_names):
             for op_i in op_is:
                 regs[op_i] = "c{}".format(const_names.index(input_operand))
     """
+ 
     for i, reg in enumerate(reg_map):
         if reg["d"] in instr[1:]:
             op_is = np.where(np.array(instr[1:]) == reg["d"])[0]
@@ -185,7 +191,6 @@ def collapse_nops(asm):
                 nop_ctr = 0
             else:
                 new_asm.append(instr)
-
     if nop_ctr:
         new_asm.append(
             ['nop', None, nop_ctr-1, None]
@@ -225,6 +230,11 @@ def instr_to_machcode(instr, dbs):
         elif op == "halt":
             subopcode = convert_to_uint(op_dat['subopcode'], reg_width) 
             machcode = '0'*reg_width*2 + subopcode + machcode
+    elif op_dat['type'] == '2rl':
+        in_reg_0_bin = reg_ptr_to_bin(instr[1], reg_width)
+        subopcode = convert_to_uint(instr[2], reg_width)
+        out_reg_bin  = reg_ptr_to_bin(instr[3], reg_width)
+        machcode = out_reg_bin + subopcode + in_reg_0_bin + machcode
 
     return machcode + "\n"
 

@@ -5,7 +5,7 @@
         "datapath_radix": 16
     },
     "manycore_params": {
-        "cores": 1,
+        "cores": 2,
         "working_regs": 24,
         "output_regs": 8,
         "machcode_params": {
@@ -94,6 +94,10 @@
             "opcode": 31,
             "subopcode": 0,
             "type": "0r"
+        },
+        "lut": {
+            "opcode": 4,
+            "type": "2rl"
         },
         "halt": {
             "opcode": 31,
