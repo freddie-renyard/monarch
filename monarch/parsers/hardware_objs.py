@@ -383,17 +383,21 @@ class ManycoreUnit:
     def asm_to_machcode(self, asm):
         # Compile threads of assembly into machine code, as per the manycore MONArch ISA.
 
-        for core_asm in asm:
-        
-            # Perform nop collapse to compress memory footprint.
-            core_asm = collapse_nops(core_asm)
-            disp_exec_thread([core_asm])
+        # Perform nop collapse to compress memory footprint.
+        asm = [collapse_nops(x) for x in asm]
+
+        # Add a halt instruction to the end of every core program.
+        asm = [x + [['halt', None, None, None]] for x in asm]
 
         for i, core_asm in enumerate(asm):
-            machcode_bin = ''
-            for instr in core_asm:
-                machcode_bin += instr_to_machcode(instr, self.arch_dbs)
-            
+            with open("monarch/cache/exec_core{}.mem".format(i), "w+") as file:
+                machcode_bin = '// Core {} machine code for tile {} \n'.format(i, self.name)
+
+                for instr in core_asm:
+                    machcode_bin += instr_to_machcode(instr, self.arch_dbs)
+                
+                file.write(machcode_bin)
+
 class HardwareUnit:
 
     def __init__(self, target_unit, args, init_state, dt, name="unit_1"):

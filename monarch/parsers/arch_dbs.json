@@ -88,6 +88,12 @@
         },
         "nop": {
             "opcode": 31,
+            "subopcode": 0,
+            "type": "0r"
+        },
+        "halt": {
+            "opcode": 31,
+            "subopcode": 1,
             "type": "0r"
         }
     }

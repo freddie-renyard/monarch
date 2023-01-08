@@ -140,7 +140,7 @@ def collapse_nops(asm):
         else:
             if nop_ctr:
                 new_asm.append(
-                    ['nop', nop_ctr-1, None, None]
+                    ['nop', None, nop_ctr-1, None]
                 )
                 new_asm.append(
                     instr
@@ -151,7 +151,7 @@ def collapse_nops(asm):
 
     if nop_ctr:
         new_asm.append(
-            ['nop', nop_ctr-1, None, None]
+            ['nop', None, nop_ctr-1, None]
         )
 
     return new_asm
@@ -183,6 +183,11 @@ def instr_to_machcode(instr, dbs):
     elif op_dat['type'] == "0r":
         # The instruction takes no register operands.
         if op == 'nop':
-            machcode = '0'*reg_width*3 + machcode
+            subopcode = convert_to_uint(op_dat['subopcode'], reg_width) 
+            dly_time = convert_to_uint(instr[2], reg_width)
+            machcode = '0'*reg_width + dly_time + subopcode + machcode
+        elif op == "halt":
+            subopcode = convert_to_uint(op_dat['subopcode'], reg_width) 
+            machcode = '0'*reg_width*2 + subopcode + machcode
 
     return machcode + "\n"
