@@ -1,7 +1,7 @@
 import numpy as np
 from parsers.bin_compiler import convert_to_uint
 
-def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, completed=[]):
+def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, primaries=[], completed=[]):
     # Searches through the source nodes and allocates an instruction
     # based on available operands.
 
@@ -9,14 +9,24 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, completed=[
     # If valid, it is an intermediate result that has been computed.
     avail_dat = [x["d"] for x in reg_map if x["s"] == "valid"]
 
-    comp_source_ops = True
-    sink_i = -1
-    while comp_source_ops:
-        sink_i += 1
+    # Determine the order of evaluation for faster execution 
+    sink_is = []
+    for prim_node in primaries:
+        sink_is.append(
+            np.where(sink_nodes == prim_node)[0][0]
+        )
+    sink_is += [x for x in range(len(sink_nodes)) if x not in sink_is]
 
+    comp_source_ops = True
+    i = -1
+    while comp_source_ops:
+        i += 1
+        
         # Add a NOP operation if there are no available data to operate on
-        if sink_i == len(sink_nodes):
+        if i == len(sink_nodes):
             return ["nop", None, None, None], completed
+
+        sink_i = sink_is[i]
 
         target_column = conn_mat[:, sink_i]
         source_is = target_column.nonzero()
@@ -191,3 +201,43 @@ def instr_to_machcode(instr, dbs):
             machcode = '0'*reg_width*2 + subopcode + machcode
 
     return machcode + "\n"
+
+def get_branches(target_node, conn_mat, source_nodes, sink_nodes):
+    # Returns the non-terminal branches of a node
+
+    node_i = np.where(sink_nodes == target_node)[0][0]
+    target_is = conn_mat[:, node_i].nonzero()
+    new_target_nodes = source_nodes[target_is]
+
+    temp = [target_node]
+    for new_target in new_target_nodes:
+        if type(new_target) == str:
+            temp += get_branches(
+                new_target, conn_mat, source_nodes, sink_nodes
+            )
+
+    return temp
+
+def determine_primary(conn_mat, source_nodes, sink_nodes, target_op="div"):
+    # Determines a list of intermediates that should be completed
+    # before any others. This is to allow for better use of ALU time:
+    # completing work for time-consuming units like the division block 
+    # first, so that lower-latency work can be done whilst this result is computed.
+
+    # Determine the intermediate that will be targeted.
+    target_node = None
+    for node in source_nodes:
+        if type(node) == str:
+            if target_op + '_' in node:
+                target_node = node
+                break
+    
+    if target_node is not None:
+        return get_branches(
+            target_node,
+            conn_mat,
+            source_nodes,
+            sink_nodes
+        )[::-1]
+    else:
+        return []

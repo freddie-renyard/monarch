@@ -2,7 +2,7 @@ import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
 from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
-from parsers.asm_compiler import instr_to_machcode
+from parsers.asm_compiler import instr_to_machcode, determine_primary
 from sympy import Symbol
 import json
 import os
@@ -286,7 +286,8 @@ class ManycoreUnit:
         self.output_regs = dbs['manycore_params']['output_regs']
 
         asm = self.compile_instrs()
-        
+
+        self.report_exec_time(asm)
         self.asm_to_machcode(asm)
 
     def compile_instrs(self):
@@ -309,6 +310,14 @@ class ManycoreUnit:
             self.graph_unit.source_nodes,
             self.graph_unit.sink_nodes
         )    
+
+        # Determine the seed list for the instruction allocation.
+        primaries = determine_primary(
+            self.graph_unit.conn_mat, 
+            self.graph_unit.source_nodes,
+            self.graph_unit.sink_nodes,
+            target_op='div'
+        )
 
         # Initialise the register map. 
         reg_map = []
@@ -354,6 +363,7 @@ class ManycoreUnit:
                     self.graph_unit.source_nodes, 
                     self.graph_unit.sink_nodes,
                     reg_map,
+                    primaries,
                     completed
                 )
 
@@ -378,7 +388,7 @@ class ManycoreUnit:
             for i, new_instr in enumerate(new_instrs):
                 asm_instr = instr_to_asm(new_instr, reg_map)
                 asm[i].append(asm_instr)
-
+        
         return asm
     
     def asm_to_machcode(self, asm):
@@ -398,6 +408,15 @@ class ManycoreUnit:
                     machcode_bin += instr_to_machcode(instr, self.arch_dbs)
                 
                 file.write(machcode_bin)
+
+    def report_exec_time(self, asm):
+        
+        lengths = []
+        for core_asm in asm:
+            lengths.append(len(core_asm))
+
+        max_len = max(lengths)
+        print("MONARCH - Multicore execution time: {} cycles".format(max_len + 1))
 
 class HardwareUnit:
 
