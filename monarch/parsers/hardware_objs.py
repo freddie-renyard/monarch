@@ -1,7 +1,7 @@
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
-from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm
+from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
 from sympy import Symbol
 import json
 import os
@@ -284,7 +284,8 @@ class ManycoreUnit:
         self.work_regs   = dbs['manycore_params']['working_regs']
         self.output_regs = dbs['manycore_params']['output_regs']
 
-        self.compile_instrs()
+        asm = self.compile_instrs()
+        machine_code = self.asm_to_machcode(asm)
 
     def compile_instrs(self):
         
@@ -375,10 +376,18 @@ class ManycoreUnit:
             for i, new_instr in enumerate(new_instrs):
                 asm_instr = instr_to_asm(new_instr, reg_map)
                 asm[i].append(asm_instr)
-            
-        disp_reg_map(reg_map)
-        disp_exec_thread(asm, 0)
         
+        return asm
+    
+    def asm_to_machcode(self, asm):
+        # Compile threads of assembly into machine code, as per the manycore MONArch ISA.
+
+        for core_asm in asm:
+        
+            # Perform nop collapse to compress memory footprint.
+            core_asm = collapse_nops(core_asm)
+            disp_exec_thread([core_asm])
+
 class HardwareUnit:
 
     def __init__(self, target_unit, args, init_state, dt, name="unit_1"):

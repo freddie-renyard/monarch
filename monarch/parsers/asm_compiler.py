@@ -128,3 +128,29 @@ def instr_to_asm(instr, reg_map):
             regs[op_index] = "r{}".format(i)
 
     return [op, *regs]
+
+def collapse_nops(asm):
+
+    nop_ctr = 0
+    new_asm = []
+    for instr in asm:
+        if instr[0] == "nop":
+            nop_ctr += 1
+        else:
+            if nop_ctr:
+                new_asm.append(
+                    ['nop', nop_ctr-1, None, None]
+                )
+                new_asm.append(
+                    instr
+                )
+                nop_ctr = 0
+            else:
+                new_asm.append(instr)
+
+    if nop_ctr:
+        new_asm.append(
+            ['nop', nop_ctr-1, None, None]
+        )
+
+    return new_asm
