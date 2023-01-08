@@ -98,11 +98,11 @@ The lookup table block in the ALU uses its second argument to select the table.
 # CSRs
 
 One 32 bit CSR is implemented for flags.
-Bit 0 - Division by 0
-Bit 1 - Overflow in mult
-Bit 2 - Overflow in add
-Bit 3 - Overflow in sub
-Bit 4 - Overflow in div
+- Bit 0 - Division by 0
+- Bit 1 - Overflow in mult
+- Bit 2 - Overflow in add
+- Bit 3 - Overflow in sub
+- Bit 4 - Overflow in div
 
 # Constant Pool
 
