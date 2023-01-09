@@ -190,7 +190,7 @@ class GraphUnit:
                 
                 no_square = not (("square" in str(sink_node_0)) and ("square" in str(sink_node_1)))
 
-                if equal_op and equal_conn and dissimilar and no_square:
+                if equal_op and equal_conn and dissimilar:
                     # The sink nodes compute the same result, combine them
                     self.conn_mat = self.combine_mat_dat(self.conn_mat, sink_node_0, sink_node_1)
                     self.dly_mat = self.combine_mat_dat(self.dly_mat, sink_node_0, sink_node_1)
@@ -200,6 +200,21 @@ class GraphUnit:
         # Return false if no optimisations have been found or performed.
         return False
 
+    def rectify_error(self, err_node):
+
+        op = err_node.split("_")[0]
+        op_index = err_node.split("_")[1]
+        
+        if op == 'mult':
+            sink_i = np.where(self.sink_nodes == err_node)[0][0]
+            source_i = np.where(self.source_nodes == err_node)[0][0]
+            
+            new_op = "square_" + op_index
+            self.source_nodes[source_i] = new_op
+            self.sink_nodes[sink_i] = new_op
+
+        self.verify_against_dbs()
+
     def remove_dup_branches(self):
         # Analyses the full system CFG in matrix form and removes branches
         # that are duplicates.
@@ -208,13 +223,17 @@ class GraphUnit:
         passes = 0
         while opt:
             opt = self.find_and_modify_similars()
+            err_node = self.verify_against_dbs(throw_exception=False)
+            if err_node:
+                self.rectify_error(err_node)
+            
             passes += 1
         
         print("MONARCH - Matrix branch optimisation complete. Cycles: {}".format(passes-1))
         print("MONARCH - Post optimisation utilisation:")
         self.report_utilisation()
 
-    def verify_against_dbs(self):
+    def verify_against_dbs(self, throw_exception=True):
         # Verify that each node has the appropriate number of inputs
         # after graph compilation and optimisation. 
         for j, output_node in enumerate(self.sink_nodes):
@@ -222,8 +241,13 @@ class GraphUnit:
             if name in self.arch_dbs.keys():
                 conns = self.conn_mat[:, j] > 0
                 if np.sum(conns) != self.arch_dbs[name]['input_num']:
-                    raise Exception("MONARCH - Node {} has {} input connections, rather than {}".format(output_node, np.sum(conns), self.arch_dbs[name]['input_num'] ))
+                    if throw_exception:
+                        raise Exception("MONARCH - Node {} has {} input connections, rather than {}".format(output_node, np.sum(conns), self.arch_dbs[name]['input_num'] ))
+                    else:
+                        return output_node
 
+        return None
+    
     def report_utilisation(self):
 
         for op in self.arch_dbs:
@@ -336,12 +360,16 @@ class ManycoreUnit:
         )    
 
         # Determine the seed list for the instruction allocation.
+        # TODO Fix the allocation code, as it causes the compiler to hang in some instances.
+        """
         primaries = determine_primary(
             self.graph_unit.conn_mat, 
             self.graph_unit.source_nodes,
             self.graph_unit.sink_nodes,
             target_op='div'
         )
+        """
+        primaries = []
 
         # Initialise the register map. 
         reg_map = []
@@ -415,6 +443,10 @@ class ManycoreUnit:
                 asm_instr = instr_to_asm(new_instr, reg_map, self.const_names)
                 asm[i].append(asm_instr)
 
+            #disp_exec_thread(instrs)
+            #disp_reg_map(reg_map)
+            #input()
+
         if verbose:
             for i, instr_asm in enumerate(instrs):
                 print("// MONARCH - CORE {} ASSEMBLY".format(i))
@@ -444,11 +476,20 @@ class ManycoreUnit:
     def report_exec_time(self, asm):
         
         lengths = []
+        nop_counts = []
         for core_asm in asm:
             lengths.append(len(core_asm))
 
+            nop_count = 0
+            for instr in core_asm:
+                if instr[0] == 'nop':
+                    nop_count += 1
+            nop_counts.append(nop_count)
+
         max_len = max(lengths)
         print("MONARCH - Multicore execution time: {} cycles".format(max_len + 1))
+        for i, counts in enumerate(zip(lengths, nop_counts)):
+            print("MONARCH - NOP proportion for core {}: {:.1f}%".format(i, 100.0 * float(counts[1]) / float(counts[0])))
 
 class HardwareUnit:
 

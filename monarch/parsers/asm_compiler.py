@@ -24,7 +24,7 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, 
         i += 1
 
         # Add a NOP operation if there are no available data to operate on
-        if i == len(sink_nodes):
+        if i >= len(sink_nodes):
             return ["nop", None, None, None], completed
 
         sink_i = sink_is[i]
@@ -50,11 +50,11 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, 
 
     if dbs['opcodes'][op]['input_num'] == 1:
         if op == 'square':
-            in_0 = source_nodes[np.where(target_column == 1.0)][0]
+            in_0 = source_nodes[target_column.nonzero()][0]
             in_1 = in_0
         elif op == 'lut':
             if str(sink_nodes[sink_i]) in assoc_dat.keys():
-                in_0 = source_nodes[np.where(target_column == 1.0)][0]
+                in_0 = source_nodes[target_column.nonzero()][0]
                 try:
                     in_1 = dbs["lut_functions"][assoc_dat[sink_nodes[sink_i]]]['subopcode']
                 except:
@@ -254,7 +254,7 @@ def get_branches(target_node, conn_mat, source_nodes, sink_nodes):
 
     return temp
 
-def determine_primary(conn_mat, source_nodes, sink_nodes, target_op="div"):
+def determine_primary(conn_mat, source_nodes, sink_nodes, ignore_lst=[], target_op="div"):
     # Determines a list of intermediates that should be completed
     # before any others. This is to allow for better use of ALU time:
     # completing work for time-consuming units like the division block 
@@ -265,8 +265,9 @@ def determine_primary(conn_mat, source_nodes, sink_nodes, target_op="div"):
     for node in source_nodes:
         if type(node) == str:
             if target_op + '_' in node:
-                target_node = node
-                break
+                if node not in ignore_lst:
+                    target_node = node
+                    break
     
     if target_node is not None:
         return get_branches(

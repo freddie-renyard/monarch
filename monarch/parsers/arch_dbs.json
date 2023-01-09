@@ -5,7 +5,7 @@
         "datapath_radix": 16
     },
     "manycore_params": {
-        "cores": 2,
+        "cores": 1,
         "working_regs": 24,
         "output_regs": 8,
         "machcode_params": {
