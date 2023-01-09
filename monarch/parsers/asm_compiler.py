@@ -1,14 +1,17 @@
+from distutils import core
 from pickletools import opcodes
+from shutil import ExecError
 import numpy as np
 from parsers.bin_compiler import convert_to_uint
 
-def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, dbs, primaries=[], completed=[]):
+def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, avail_consts, dbs, primaries=[], completed=[]):
     # Searches through the source nodes and allocates an instruction
     # based on available operands.
 
     # Get the list of available results that can be computed.
     # If valid, it is an intermediate result that has been computed.
     avail_dat = [x["d"] for x in reg_map if x["s"] == "valid"]
+    avail_dat += avail_consts
 
     # Determine the order of evaluation for faster execution 
     sink_is = []
@@ -144,7 +147,7 @@ def disp_reg_map(reg_map):
 def disp_exec_thread(instrs, index=0):
 
     for instr in instrs[index]:
-        print("{}   {}, {}, {}".format(instr[0], instr[3], instr[1], instr[2]))
+        print("{}\t {}, {}, {}".format(instr[0], instr[3], instr[1], instr[2]))
 
 def instr_to_asm(instr, reg_map, const_names):
 
@@ -157,14 +160,12 @@ def instr_to_asm(instr, reg_map, const_names):
     if instr[0] == 'lut':
         regs[1] = int(instr[2])
 
-    """
     for i, input_operand in enumerate(instr[1:3]):
         if input_operand in const_names:
             op_is = np.where(np.array(instr[1:3]) == input_operand)[0]
             for op_i in op_is:
                 regs[op_i] = "c{}".format(const_names.index(input_operand))
-    """
- 
+
     for i, reg in enumerate(reg_map):
         if reg["d"] in instr[1:]:
             op_is = np.where(np.array(instr[1:]) == reg["d"])[0]
@@ -198,8 +199,31 @@ def collapse_nops(asm):
 
     return new_asm
 
-def reg_ptr_to_bin(reg, width):
-    return convert_to_uint(int(reg.split("r")[1]), width)
+def preprocess_asm(core_asm):
+
+    for i, instr in enumerate(core_asm):
+        if instr[0] != 'nop':
+            for op_i, operand in enumerate(instr[1:3]):
+                if 'c' in str(operand):
+                    if op_i == 0:
+                        # The constant is in the LSBs of the instruction,
+                        # as it has operator precedence
+                        core_asm[i][0] += '_cl'
+                    elif op_i == 1:
+                        core_asm[i][0] += '_cm'
+
+    return core_asm
+
+def ptr_to_bin(reg, width):
+
+    if "r" in reg:
+        # A register reference is being compiled.
+        return convert_to_uint(int(reg.split("r")[1]), width)
+    elif "c" in reg:
+        # A reference to a constant is being compiled.
+        return convert_to_uint(int(reg.split("c")[1]), width)
+
+    raise Exception("MONARCH - Unsupported reference {}".format(reg))
 
 def instr_to_machcode(instr, dbs):
 
@@ -214,11 +238,11 @@ def instr_to_machcode(instr, dbs):
     machcode += convert_to_uint(op_dat["opcode"], dbs["manycore_params"]["machcode_params"]['instr_width'])
 
     reg_width = dbs["manycore_params"]["machcode_params"]['reg_ptr_width']
-    if op_dat["type"] == "3r":
+    if op_dat["type"] in ["3r", "2rc", "2cr"]:
         # This instruction has two input register operands and one output register.
-        in_reg_0_bin = reg_ptr_to_bin(instr[1], reg_width)
-        in_reg_1_bin = reg_ptr_to_bin(instr[2], reg_width)
-        out_reg_bin  = reg_ptr_to_bin(instr[3], reg_width)
+        in_reg_0_bin = ptr_to_bin(instr[1], reg_width)
+        in_reg_1_bin = ptr_to_bin(instr[2], reg_width)
+        out_reg_bin  = ptr_to_bin(instr[3], reg_width)
 
         machcode = out_reg_bin + in_reg_1_bin + in_reg_0_bin + machcode
     elif op_dat['type'] == "0r":
@@ -231,10 +255,10 @@ def instr_to_machcode(instr, dbs):
             subopcode = convert_to_uint(op_dat['subopcode'], reg_width) 
             machcode = '0'*reg_width*2 + subopcode + machcode
     elif op_dat['type'] == '2rl':
-        in_reg_0_bin = reg_ptr_to_bin(instr[1], reg_width)
+        in_reg_0_bin = ptr_to_bin(instr[1], reg_width)
         subopcode = convert_to_uint(instr[2], reg_width)
-        out_reg_bin  = reg_ptr_to_bin(instr[3], reg_width)
-        machcode = out_reg_bin + subopcode + in_reg_0_bin + machcode
+        out_reg_bin  = ptr_to_bin(instr[3], reg_width)
+        machcode = out_reg_bin + subopcode + in_reg_0_bin + machcode        
 
     return machcode + "\n"
 

@@ -2,7 +2,7 @@ import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
 from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
-from parsers.asm_compiler import instr_to_machcode, determine_primary
+from parsers.asm_compiler import instr_to_machcode, determine_primary, preprocess_asm
 from sympy import Symbol, sympify, Float
 import json
 import os
@@ -338,10 +338,11 @@ class ManycoreUnit:
         self.report_exec_time(asm)
         self.asm_to_machcode(asm)
 
-    def compile_instrs(self, verbose=True):
+    def compile_instrs(self, verbose=False):
         
         input_nodes = [str(x) for x in self.graph_unit.source_nodes if type(x) != str]
-        input_num = len([str(x) for x in input_nodes if x not in self.const_names])
+        input_nodes = [str(x) for x in input_nodes if x not in self.const_names]
+        input_num = len(input_nodes)
         if input_num > self.work_regs:
             raise Exception("MONARCH - Too many input registers ({} registers) are needed to realise the system.".format(input_num))
         
@@ -416,6 +417,7 @@ class ManycoreUnit:
                     self.graph_unit.sink_nodes,
                     reg_map,
                     self.graph_unit.assoc_dat,
+                    self.const_names,
                     self.arch_dbs,
                     primaries,
                     completed
@@ -443,10 +445,6 @@ class ManycoreUnit:
                 asm_instr = instr_to_asm(new_instr, reg_map, self.const_names)
                 asm[i].append(asm_instr)
 
-            #disp_exec_thread(instrs)
-            #disp_reg_map(reg_map)
-            #input()
-
         if verbose:
             for i, instr_asm in enumerate(instrs):
                 print("// MONARCH - CORE {} ASSEMBLY".format(i))
@@ -455,7 +453,7 @@ class ManycoreUnit:
 
         return asm
     
-    def asm_to_machcode(self, asm):
+    def asm_to_machcode(self, asm, verbose=False):
         # Compile threads of assembly into machine code, as per the manycore MONArch ISA.
 
         # Perform nop collapse to compress memory footprint.
@@ -464,6 +462,15 @@ class ManycoreUnit:
         # Add a halt instruction to the end of every core program.
         asm = [x + [['halt', None, None, None]] for x in asm]
 
+        # Preprocess the assembly to include hardware-specific instruction variants,
+        # such as use of constants in computation.
+        asm = [preprocess_asm(core_asm) for core_asm in asm]
+
+        if verbose:
+            for index, core_asm in enumerate(asm):
+                print("// MONARCH CORE {} FINAL ASSEMBLY".format(index))
+                disp_exec_thread([core_asm])
+            
         for i, core_asm in enumerate(asm):
             with open("monarch/cache/exec_core{}.mem".format(i), "w+") as file:
                 machcode_bin = '// Core {} machine code for tile {} \n'.format(i, self.name)

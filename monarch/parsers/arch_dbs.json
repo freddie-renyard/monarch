@@ -99,6 +99,40 @@
             "opcode": 4,
             "type": "2rl"
         },
+
+        "mult_cl": {
+            "opcode": 8,
+            "type": "2rc"
+        },
+        "add_cl": {
+            "opcode": 9,
+            "type": "2rc"
+        },
+        "sub_cl": {
+            "opcode": 10,
+            "type": "2rc"
+        },
+        "div_cl": {
+            "opcode": 11,
+            "type": "2rc"
+        },
+
+        "mult_cm": {
+            "opcode": 16,
+            "type": "2cr"
+        },
+        "add_cm": {
+            "opcode": 17,
+            "type": "2cr"
+        },
+        "sub_cm": {
+            "opcode": 18,
+            "type": "2cr"
+        },
+        "div_cm": {
+            "opcode": 19,
+            "type": "2cr"
+        },
         "halt": {
             "opcode": 31,
             "subopcode": 1,
