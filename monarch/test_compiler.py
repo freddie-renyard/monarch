@@ -1,7 +1,8 @@
-from parsers.hardware_objs import HardwareUnit, CFGU, ManycoreUnit
+from parsers.hardware_objs import HardwareUnit, CFGU, ManycoreUnit, Tile
 from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
 from simulators.simulators import pipeline_eumulator, simulate_system
+import numpy as np
 
 def oregonator_model():
 
@@ -139,7 +140,7 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = hodgkin_huxley()
+    test_equ, args, init_state = lorenz_attractor()
 
     dt = 1.0/128.0
     compiled_cfg = eq_to_cfg(test_equ)
@@ -147,6 +148,26 @@ if __name__ == "__main__":
 
     #pipelined_cfg.show_report()
     hardware_unit = ManycoreUnit(pipelined_cfg, args, init_state, dt=dt)
+
+    instances = 10
+    sys_data = {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0,
+        "b": 5.0, # np.random.uniform(4.0/3.0, 16.0/3.0, instances),
+        "sigma": 6.0, # np.random.uniform(5, 50, instances),
+        "rho": 7.0, #np.random.uniform(5, 50, instances),
+        "dt": 1.0/128.0
+    }
+
+    tile = Tile(
+        hardware_unit,
+        2,
+        3,
+        instances,
+        sys_data,
+        init_state.keys()
+    )
 
 """
     test_equ, args, init_state = hodgkin_huxley()

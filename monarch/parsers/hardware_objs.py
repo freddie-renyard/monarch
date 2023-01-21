@@ -1,3 +1,4 @@
+from asyncio.sslproto import constants
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
@@ -374,12 +375,14 @@ class ManycoreUnit:
 
         # Initialise the register map. 
         reg_map = []
+        self.start_locs = {}
         for i in range(self.work_regs + self.output_regs):
             if i < len(input_nodes):
                 reg_map.append({
                     "d": input_nodes[i],
                     "s": "valid"
                 })
+                self.start_locs[input_nodes[i]] = i
             else:
                 reg_map.append({
                     "d": None,
@@ -640,3 +643,115 @@ class CFGU:
         filename = "gbl_params"
         with open("monarch/cache/{}.vh".format(filename), "w+") as output_file:
             output_file.write(vh_str)
+
+class Tile:
+
+    def __init__(self, hardware_unit, columns, mem_banks, instances, sys_data, sys_state_vars, const_names=['dt']):
+
+        self.hardware_unit = hardware_unit
+        self.columns       = columns
+        self.mem_banks     = mem_banks
+        self.sys_state_vars = list(sys_state_vars)
+
+        # Open architecture database.
+        script_dir = os.path.dirname(__file__)
+        rel_path = "arch_dbs.json"
+        abs_file_path = os.path.join(script_dir, rel_path)
+        
+        with open(abs_file_path) as file:
+            dbs = json.loads(file.read())
+            self.arch_dbs = dbs
+
+        self.dpath_radix = dbs["sys_params"]["datapath_radix"]
+        self.dpath_width = dbs["sys_params"]["datapath_width"]
+        self.reg_width   = dbs["manycore_params"]["machcode_params"]["reg_ptr_width"]
+
+        self.var_names, self.const_names = self.partition_variables(const_names, list(sys_state_vars))
+        
+        self.generate_insts(instances, sys_data)
+        self.compile_consts(sys_data)
+
+    def partition_variables(self, sys_consts, sys_state_vars):
+        # Partitions system variables into the groups needed to run systems:
+        # 1. State variables (i.e. variables that vary with time)
+        # 2. Instance variables (i.e. variables that vary between parallel model instances)
+        # 3. Constants
+
+        inst_var_names, const_names, = [], []
+        for var in self.hardware_unit.args:
+            if str(var) in sys_consts:
+                const_names.append(var)
+            elif str(var) not in sys_state_vars:
+                inst_var_names.append(var)
+        
+        # Ensure that the state variables are first in the list.
+        vars = sorted(sys_state_vars)
+        vars += sorted(inst_var_names)
+
+        return vars, const_names
+
+    def generate_insts(self, n_insts, sys_data):
+        # Uses the data passed to the object to construct different instances of
+        # the model.
+
+        # Allocate each variable to a memory bank.
+        bank_names = [[] for _ in range(self.mem_banks)]
+        bank_n_rd_cell = [0 for _ in range(self.mem_banks)]
+        bank_n_wr_cell = [0 for _ in range(self.mem_banks)]
+
+        for i, var in enumerate(self.var_names):
+
+            if str(var) in self.sys_state_vars:
+                bank_n_wr_cell[i % self.mem_banks] += 1
+
+            bank_n_rd_cell[i % self.mem_banks] += 1
+            bank_names[i % self.mem_banks].append(var)
+
+        # Allocate the instance data to the banks.
+        structured_banks = [[] for _ in range(self.mem_banks)]
+        for i in range(n_insts):
+            for j, bank in enumerate(bank_names):
+                for key in bank:
+                    if hasattr(sys_data[key], "__iter__"):
+                        structured_banks[j].append(sys_data[key][i]) 
+                    else:
+                        structured_banks[j].append(sys_data[key]) 
+        
+        # Structure the data into columns
+        final_banks = [[[] for _ in range(self.columns)] for _ in range(self.mem_banks)]
+        for i, mem_bank in enumerate(structured_banks):
+            for j, dat in enumerate(mem_bank):
+                final_banks[i][(j // bank_n_rd_cell[i]) % self.columns].append(dat)
+        
+        # Output all relevant files.
+        for i in range(self.mem_banks):
+
+            # File 1: The control parameters used to determine the memory termination, etc.
+            with open("monarch/cache/ctrl_params_bank{}.mem".format(i), "w+") as file:
+                total_size = bank_n_rd_cell[i] * (n_insts - 1)
+                file.write(convert_to_fixed(total_size, 16, 0) + '\n')
+                file.write(convert_to_fixed(bank_n_rd_cell[i]-1, 16, 0) + '\n')
+                file.write(convert_to_fixed(bank_n_wr_cell[i]-1, 16, 0) + '\n')
+
+            # File 2: The actual memory files.
+            for bank_i, mem_bank in enumerate(final_banks):
+                for col_i, mem_col in enumerate(mem_bank):
+                    with open("monarch/cache/memfile_bank{}_col{}.mem".format(bank_i, col_i), "w+") as file:
+                        for dat in mem_col:
+                            file.write(convert_to_fixed(dat, self.dpath_width, self.dpath_radix) + '\n')
+
+            # File 3: The register reference files.
+            for bank_i, name_set in enumerate(bank_names):
+                with open("monarch/cache/regrefs_bank{}.mem".format(bank_i), "w+") as file:
+                    for name in name_set:
+                        if name in list(self.hardware_unit.start_locs.keys()):
+                            target = self.hardware_unit.start_locs[name]
+                        elif (str(name) + "_pre") in list(self.hardware_unit.start_locs.keys()):
+                            target =self.hardware_unit.start_locs[str(name) + "_pre"]
+
+                        file.write(convert_to_fixed(target, self.reg_width, 0) + '\n')
+
+    def compile_consts(self, sys_data):
+        with open("monarch/cache/TEST_CONSTS.mem", "w+") as file:
+            for name in self.const_names:
+                file.write(convert_to_fixed(sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
