@@ -154,16 +154,16 @@ if __name__ == "__main__":
         "x": 1.0,
         "y": 0.0,
         "z": 0.0,
-        "b": 5.0, # np.random.uniform(4.0/3.0, 16.0/3.0, instances),
-        "sigma": 6.0, # np.random.uniform(5, 50, instances),
-        "rho": 7.0, #np.random.uniform(5, 50, instances),
+        "b": 8.0/3.0, # np.random.uniform(4.0/3.0, 16.0/3.0, instances),
+        "sigma": 10.0, # np.random.uniform(5, 50, instances),
+        "rho": 10.0, #np.random.uniform(5, 50, instances),
         "dt": 1.0/128.0
     }
 
     tile = Tile(
         hardware_unit,
-        2,
-        3,
+        1,
+        1,
         instances,
         sys_data,
         init_state.keys()
