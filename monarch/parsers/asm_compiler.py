@@ -80,20 +80,23 @@ def find_terminal_instrs(conn_mat, source_nodes, sink_nodes):
     # The order that they are returned is the order of the output register.
 
     terminal_nodes = []
+    assoc_names = []
     for j, node in enumerate(sink_nodes):
         if type(node) != str:
             source_i = np.where(conn_mat[:, j] == 1.0)[0][0]
             terminal_nodes.append(source_nodes[source_i])
+            assoc_names.append(sink_nodes[j])
     
-    return terminal_nodes
+    return terminal_nodes, assoc_names
 
-def update_reg_map(reg_map, core_instr, terminal_instrs, out_reg_offset, dbs):
+def update_reg_map(reg_map, core_instr, terminal_instrs, terminal_vars, out_reg_offset, dbs, out_regs={}):
 
     for i, reg in enumerate(reg_map):
         if reg['s'] == "avail" and core_instr[0] != 'nop':
 
             if core_instr[3] in terminal_instrs:
                 reg_i = out_reg_offset + terminal_instrs.index(core_instr[3])
+                out_regs[str(terminal_vars[terminal_instrs.index(core_instr[3])])] = reg_i
             else:
                 reg_i = i
             
@@ -102,9 +105,9 @@ def update_reg_map(reg_map, core_instr, terminal_instrs, out_reg_offset, dbs):
             reg_map[reg_i]["dly"] = dbs["opcodes"][instr_name]["delay"] + 1 # Add one for the final register write
             reg_map[reg_i]["s"] = "wait"
 
-            return reg_map
+            return reg_map, out_regs
 
-    return reg_map
+    return reg_map, out_regs
 
 def find_stale_results(reg_map, conn_mat, source_nodes, sink_nodes, completed):
 

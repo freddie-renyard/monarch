@@ -355,11 +355,11 @@ class ManycoreUnit:
         asm    = [[] for _ in range(self.cores)]
 
         # Determine the output instructions.
-        terminal_instrs = find_terminal_instrs(
+        terminal_instrs, terminal_vars = find_terminal_instrs(
             self.graph_unit.conn_mat, 
             self.graph_unit.source_nodes,
             self.graph_unit.sink_nodes
-        )    
+        )
 
         # Determine the seed list for the instruction allocation.
         # TODO Fix the allocation code, as it causes the compiler to hang in some instances.
@@ -376,6 +376,7 @@ class ManycoreUnit:
         # Initialise the register map. 
         reg_map = []
         self.start_locs = {}
+        self.end_locs = {}
         for i in range(self.work_regs + self.output_regs):
             if i < len(input_nodes):
                 reg_map.append({
@@ -429,13 +430,16 @@ class ManycoreUnit:
                 new_instrs.append(op)
 
             # Add each instruction to the register map.
+            
             for core_instr in new_instrs:
-                reg_map = update_reg_map(
+                reg_map, self.end_locs = update_reg_map(
                     reg_map, 
                     core_instr, 
-                    terminal_instrs, 
+                    terminal_instrs,
+                    terminal_vars,
                     self.work_regs, 
-                    self.arch_dbs
+                    self.arch_dbs,
+                    self.end_locs
                 )
             
             # Append the instructions to the core instruction threads
@@ -455,8 +459,8 @@ class ManycoreUnit:
                 print()
 
         return asm
-    
-    def asm_to_machcode(self, asm, verbose=False):
+
+    def asm_to_machcode(self, asm, verbose=True):
         # Compile threads of assembly into machine code, as per the manycore MONArch ISA.
 
         # Perform nop collapse to compress memory footprint.
@@ -742,14 +746,23 @@ class Tile:
 
             # File 3: The register reference files.
             for bank_i, name_set in enumerate(bank_names):
-                with open("monarch/cache/regrefs_bank{}.mem".format(bank_i), "w+") as file:
-                    for name in name_set:
-                        if name in list(self.hardware_unit.start_locs.keys()):
-                            target = self.hardware_unit.start_locs[name]
-                        elif (str(name) + "_pre") in list(self.hardware_unit.start_locs.keys()):
-                            target =self.hardware_unit.start_locs[str(name) + "_pre"]
+                rd_reg_file = open("monarch/cache/rd_regrefs_bank{}.mem".format(bank_i), "w+")
+                wr_reg_file = open("monarch/cache/wr_regrefs_bank{}.mem".format(bank_i), "w+")
 
-                        file.write(convert_to_fixed(target, self.reg_width, 0) + '\n')
+                for name in name_set:
+                    if name in list(self.hardware_unit.start_locs.keys()):
+                        target = self.hardware_unit.start_locs[name]
+                    elif (str(name) + "_pre") in list(self.hardware_unit.start_locs.keys()):
+                        
+                        target = self.hardware_unit.start_locs[str(name) + "_pre"]
+                        wr_target = self.hardware_unit.end_locs[name + "_post"]
+
+                        wr_reg_file.write(convert_to_fixed(wr_target, self.reg_width, 0, signed=False) + '\n')
+
+                    rd_reg_file.write(convert_to_fixed(target, self.reg_width, 0, signed=False) + '\n')
+
+                rd_reg_file.close()
+                wr_reg_file.close()
 
     def compile_consts(self, sys_data):
         with open("monarch/cache/TEST_CONSTS.mem", "w+") as file:

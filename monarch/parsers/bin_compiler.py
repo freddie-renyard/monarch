@@ -1,11 +1,14 @@
 from bitstring import BitArray
 
-def convert_to_fixed(target, width, radix):
+def convert_to_fixed(target, width, radix, signed=True):
 
     scale_factor = 2 ** radix
     scaled_val = int(target * scale_factor)
     
-    bin_str = str(BitArray(int=scaled_val, length=width).bin)
+    if signed:
+        bin_str = str(BitArray(int=scaled_val, length=width).bin)
+    else:
+        bin_str = str(BitArray(uint=scaled_val, length=width).bin)
 
     return bin_str
 
