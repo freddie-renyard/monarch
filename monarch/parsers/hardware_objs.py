@@ -737,9 +737,9 @@ class Tile:
 
             # File 1: The control parameters used to determine the memory termination, etc.
             with open("monarch/cache/ctrl_params_bank{}.mem".format(i), "w+") as file:
-                total_size = bank_n_rd_cell[i] * (n_insts - 1)
+                total_size = bank_n_rd_cell[i] * ((n_insts // self.columns) - 1)
                 
-                file.write(convert_to_fixed(total_size // self.columns, 16, 0) + '\n')
+                file.write(convert_to_fixed(total_size, 16, 0) + '\n')
                 file.write(convert_to_fixed(bank_n_rd_cell[i]-1, 16, 0) + '\n')
                 file.write(convert_to_fixed(bank_n_wr_cell[i]-1, 16, 0) + '\n')
 
