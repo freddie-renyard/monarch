@@ -650,11 +650,9 @@ class CFGU:
 
 class Tile:
 
-    def __init__(self, hardware_unit, columns, mem_banks, instances, sys_data, sys_state_vars, const_names=['dt']):
+    def __init__(self, hardware_unit, instances, sys_data, sys_state_vars, const_names=['dt']):
 
         self.hardware_unit = hardware_unit
-        self.columns       = columns
-        self.mem_banks     = mem_banks
         self.sys_state_vars = list(sys_state_vars)
 
         # Open architecture database.
@@ -669,6 +667,8 @@ class Tile:
         self.dpath_radix = dbs["sys_params"]["datapath_radix"]
         self.dpath_width = dbs["sys_params"]["datapath_width"]
         self.reg_width   = dbs["manycore_params"]["machcode_params"]["reg_ptr_width"]
+        self.columns     = dbs["manycore_params"]["columns"]
+        self.mem_banks   = dbs["manycore_params"]["mem_banks"]
 
         self.var_names, self.const_names = self.partition_variables(const_names, list(sys_state_vars))
         

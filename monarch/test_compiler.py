@@ -162,8 +162,6 @@ if __name__ == "__main__":
 
     tile = Tile(
         hardware_unit,
-        1,
-        1,
         instances,
         sys_data,
         init_state.keys()
