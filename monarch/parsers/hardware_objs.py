@@ -670,6 +670,9 @@ class Tile:
         self.columns     = dbs["manycore_params"]["columns"]
         self.mem_banks   = dbs["manycore_params"]["mem_banks"]
 
+        if instances % self.columns != 0:
+            raise Exception("MONARCH - The total number of instances does not divide evenly into the number of columns specified.")
+
         self.var_names, self.const_names = self.partition_variables(const_names, list(sys_state_vars))
         
         self.generate_insts(instances, sys_data)
@@ -735,7 +738,8 @@ class Tile:
             # File 1: The control parameters used to determine the memory termination, etc.
             with open("monarch/cache/ctrl_params_bank{}.mem".format(i), "w+") as file:
                 total_size = bank_n_rd_cell[i] * (n_insts - 1)
-                file.write(convert_to_fixed(total_size, 16, 0) + '\n')
+                
+                file.write(convert_to_fixed(total_size // self.columns, 16, 0) + '\n')
                 file.write(convert_to_fixed(bank_n_rd_cell[i]-1, 16, 0) + '\n')
                 file.write(convert_to_fixed(bank_n_wr_cell[i]-1, 16, 0) + '\n')
 

@@ -6,7 +6,7 @@
     },
     "manycore_params": {
         "cores": 1,
-        "columns": 1,
+        "columns": 2,
         "mem_banks": 1,
         "mem_bank_size": 256,
         "working_regs": 24,
