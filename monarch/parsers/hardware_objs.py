@@ -675,6 +675,8 @@ class Tile:
         self.generate_insts(instances, sys_data)
         self.compile_consts(sys_data)
 
+        self.compile_pkg()
+
     def partition_variables(self, sys_consts, sys_state_vars):
         # Partitions system variables into the groups needed to run systems:
         # 1. State variables (i.e. variables that vary with time)
@@ -768,3 +770,26 @@ class Tile:
         with open("monarch/cache/TEST_CONSTS.mem", "w+") as file:
             for name in self.const_names:
                 file.write(convert_to_fixed(sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
+
+    def compile_pkg(self):
+        # Compiles the package file for the tile hardware. Used for FPGA implementations where
+        # the hardware is not static.
+
+        with open("monarch/dbs/tile_pkg_template.sv") as sv_file:
+            sv_str = sv_file.read()
+
+        sv_str = sv_str.replace("<instr_width>", str(self.arch_dbs["manycore_params"]["machcode_params"]['instr_width']))
+        sv_str = sv_str.replace("<reg_width>", str(self.arch_dbs["manycore_params"]["machcode_params"]['reg_ptr_width']))
+        sv_str = sv_str.replace("<data_width>", str(self.arch_dbs["sys_params"]["datapath_width"]))
+        sv_str = sv_str.replace("<data_radix>", str(self.arch_dbs["sys_params"]["datapath_radix"]))
+        sv_str = sv_str.replace("<n_cores>", str(self.arch_dbs["manycore_params"]["cores"]))
+        sv_str = sv_str.replace("<n_columns>", str(self.arch_dbs["manycore_params"]["columns"]))
+        sv_str = sv_str.replace("<n_bank>", str(self.arch_dbs["manycore_params"]["mem_banks"]))
+        sv_str = sv_str.replace("<n_bank_size>", str(self.arch_dbs["manycore_params"]["mem_bank_size"]))
+
+        # TODO refactor these parameters out of the RTL
+        sv_str = sv_str.replace("<n_ext_rd_ports>", str(self.arch_dbs["manycore_params"]["mem_banks"]))
+        sv_str = sv_str.replace("<n_ext_wr_ports>", str(self.arch_dbs["manycore_params"]["mem_banks"]))
+        
+        with open("monarch/cache/tile_pkg.sv", "w+") as file:
+            file.write(sv_str)

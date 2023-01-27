@@ -238,7 +238,7 @@ def instr_to_machcode(instr, dbs):
     except:
         raise Exception("MONARCH - Unsupported operation '{}'.".format(op))
 
-    machcode += convert_to_uint(op_dat["opcode"], dbs["manycore_params"]["machcode_params"]['instr_width'])
+    machcode += convert_to_uint(op_dat["opcode"], dbs["manycore_params"]["machcode_params"]['op_width'])
 
     reg_width = dbs["manycore_params"]["machcode_params"]['reg_ptr_width']
     if op_dat["type"] in ["3r", "2rc", "2cr"]:

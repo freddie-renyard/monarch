@@ -6,11 +6,15 @@
     },
     "manycore_params": {
         "cores": 1,
+        "columns": 1,
+        "mem_banks": 1,
+        "mem_bank_size": 256,
         "working_regs": 24,
         "output_regs": 8,
         "machcode_params": {
-            "instr_width": 5,
-            "reg_ptr_width": 5
+            "op_width": 5,
+            "reg_ptr_width": 5,
+            "instr_width": 20
         }
     },
     "opcodes": {
