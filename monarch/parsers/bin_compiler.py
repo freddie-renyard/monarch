@@ -1,4 +1,5 @@
 from bitstring import BitArray
+import numpy as np
 
 def convert_to_fixed(target, width, radix, signed=True):
 
@@ -22,7 +23,3 @@ def convert_to_hex(number):
         return str(BitArray(bin=number))[2:]
     else:
         raise Exception("MONARCH - The width of the binary data is not evenly divisble by 4 and so cannot be converted to hex")
-
-if __name__ == "__main__":
-    bin_num = convert_to_fixed(-0.75, 16, 8)
-    print(convert_to_hex(bin_num))

@@ -140,7 +140,7 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = lorenz_attractor()
+    test_equ, args, init_state = hodgkin_huxley()
 
     dt = 1.0/128.0
     compiled_cfg = eq_to_cfg(test_equ)
