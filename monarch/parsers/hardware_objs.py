@@ -2,8 +2,9 @@ from asyncio.sslproto import constants
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
-from parsers.asm_compiler import allocate_core_instr, update_reg_map, disp_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
-from parsers.asm_compiler import instr_to_machcode, determine_primary, preprocess_asm
+from parsers.asm_compiler import allocate_core_instr, update_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
+from parsers.asm_compiler import instr_to_machcode, preprocess_asm
+from parsers.lut_compiler import generate_lut
 from sympy import Symbol, sympify, Float
 import json
 import os
@@ -675,6 +676,8 @@ class Tile:
 
         self.var_names, self.const_names = self.partition_variables(const_names, list(sys_state_vars))
         
+        self.resynth_luts()
+
         self.generate_insts(instances, sys_data)
         self.compile_consts(sys_data)
 
@@ -797,3 +800,7 @@ class Tile:
         
         with open("monarch/cache/tile_pkg.sv", "w+") as file:
             file.write(sv_str)
+    
+    def resynth_luts(self):
+        # Resynthesises the lookup tables to ensure that they are up to date with current system parameters.
+        generate_lut("e")

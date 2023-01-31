@@ -5,7 +5,7 @@ import os
 import json
 from math import ceil, log2, floor
 from matplotlib import pyplot as plt
-from bin_compiler import convert_to_fixed, twos_to_uint, bin_to_int
+from parsers.bin_compiler import convert_to_fixed, twos_to_uint, bin_to_int
 
 def get_max_val (width, radix):
     if width == 0: return 0.0
@@ -99,7 +99,3 @@ def generate_lut(arch_fn):
             file.write(pkg_str)
     else:
         raise Exception("MONARCH - LUT instruction target function not recognised: {}".format(arch_fn))
-
-if __name__ == "__main__":
-    generate_lut("e")
-
