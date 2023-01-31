@@ -335,6 +335,8 @@ class ManycoreUnit:
             self.consts.append(consts[key]) 
             self.const_names.append(key) 
 
+        self.clear_cache()
+
         asm = self.compile_instrs()
 
         self.report_exec_time(asm)
@@ -505,6 +507,12 @@ class ManycoreUnit:
         print("MONARCH - Multicore execution time: {} cycles".format(max_len + 1))
         for i, counts in enumerate(zip(lengths, nop_counts)):
             print("MONARCH - NOP proportion for core {}: {:.1f}%".format(i, 100.0 * float(counts[1]) / float(counts[0])))
+
+    def clear_cache(self):
+        # Clear the cache before writing new data.
+        cache_path = "monarch/cache"
+        for f in os.listdir(cache_path):
+            os.remove(os.path.join(cache_path, f))
 
 class HardwareUnit:
 
