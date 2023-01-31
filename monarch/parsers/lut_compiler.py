@@ -91,6 +91,7 @@ def generate_lut(arch_fn):
         # Write all parameters needed for this module to function properly to a pkg file.
         with open("monarch/dbs/lut_pkg_template.sv") as file:
             pkg_str = file.read()
+            pkg_str = pkg_str.replace("<table_size>", str(target_dat["table_size"]))
             pkg_str = pkg_str.replace("<shift_val>", str(shift_val))
             pkg_str = pkg_str.replace("<max_val>", "{}'b".format(width) + str(max_bin))
             pkg_str = pkg_str.replace("<min_val>", "{}'b".format(width) + str(min_bin))
