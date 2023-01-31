@@ -15,7 +15,7 @@ def get_min_abs_val(width, radix):
     if width == 0: return 0.0
     return int("0b" + "0"*(width-1) + "1", 2) / (2.0 ** radix)
 
-def generate_lut(addr_depth, arch_fn, width, radix):
+def generate_lut(arch_fn):
     # Generates look up tables for the LUT unit in hardware.
 
     # Open architecture database.
@@ -26,6 +26,8 @@ def generate_lut(addr_depth, arch_fn, width, radix):
     with open(abs_file_path) as file:
         dbs = json.loads(file.read())
 
+    width = dbs["sys_params"]["datapath_width"]
+    radix = dbs["sys_params"]["datapath_radix"]
     try:
         target_dat = dbs["lut_functions"][arch_fn]
     except:
@@ -77,21 +79,27 @@ def generate_lut(addr_depth, arch_fn, width, radix):
         # Reorder the address space to allow for contiguous memory representation.
         int_bin_outs = [bin_to_int("0" + x[width - targ_range - shift_val:width - targ_range]) for x in bin_ins]
 
-        for val in bin_ins:
-            print(val)
         sorted_is = np.argsort(int_bin_outs)
         sorted_table = np.array(bin_outs)[sorted_is]
 
+        # Write table to file.
         with open("monarch/cache/{}_lut_{}.mem".format(arch_fn, target_dat["table_size"]), "w+") as file:
+            file.write("// Lookup table for {} function, {} entries. \n".format(arch_fn, target_dat["table_size"]))
             for val in sorted_table:
                 file.write(str(val) + "\n")
+
+        # Write all parameters needed for this module to function properly to a pkg file.
+        with open("monarch/dbs/lut_pkg_template.sv") as file:
+            pkg_str = file.read()
+            pkg_str = pkg_str.replace("<shift_val>", str(shift_val))
+            pkg_str = pkg_str.replace("<max_val>", "{}'b".format(width) + str(max_bin))
+            pkg_str = pkg_str.replace("<min_val>", "{}'b".format(width) + str(min_bin))
+        
+        with open("monarch/cache/lut_pkg.sv", "w+") as file:
+            file.write(pkg_str)
     else:
         raise Exception("MONARCH - LUT instruction target function not recognised: {}".format(arch_fn))
 
 if __name__ == "__main__":
-    generate_lut(8, "e", 32, 16)
+    generate_lut("e")
 
-    """TODO 
-    - Convert the address binning to analyse the function variance directly.
-    - Create the file save mechanisms for the look up tables.
-    """
