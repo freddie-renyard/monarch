@@ -9,6 +9,8 @@ from sympy import Symbol, sympify, Float
 import json
 import os
 
+cache_path = "monarch/cache"
+
 class GraphUnit:
 
     def __init__(self, conn_mat, dly_mat, source_nodes, sink_nodes, assoc_dat, pipeline_depth):
@@ -482,7 +484,7 @@ class ManycoreUnit:
                 disp_exec_thread([core_asm])
             
         for i, core_asm in enumerate(asm):
-            with open("monarch/cache/exec_core{}.mem".format(i), "w+") as file:
+            with open(os.path.join(cache_path, "exec_core{}.mem".format(i)), "w+") as file:
                 machcode_bin = '// Core {} machine code for tile {} \n'.format(i, self.name)
 
                 for instr in core_asm:
@@ -510,7 +512,6 @@ class ManycoreUnit:
 
     def clear_cache(self):
         # Clear the cache before writing new data.
-        cache_path = "monarch/cache"
         for f in os.listdir(cache_path):
             os.remove(os.path.join(cache_path, f))
 
@@ -570,7 +571,7 @@ class HardwareUnit:
             
             output = [convert_to_hex(x) for x in output]
 
-            with open("monarch/cache/{}_{}_state".format(self.name, key), "w+") as file:
+            with open(os.path.join(cache_path, "{}_{}_state".format(self.name, key)), "w+") as file:
                 for hex_num in output:
                     file.write(hex_num)
                     file.write("\n")
@@ -628,7 +629,7 @@ class HardwareUnit:
         vh_str = vh_str.replace("<arr_dly_1>", self.lst_to_str(dly_primaries))
         vh_str = vh_str.replace("<arr_dly_2>", self.lst_to_str(dly_secondaries))
 
-        with open("monarch/cache/{}.vh".format(filename), "w+") as output_file:
+        with open(os.path.join(cache_path, "{}.vh".format(filename)), "w+") as output_file:
             output_file.write(vh_str)
 
 class CFGU:
@@ -654,7 +655,7 @@ class CFGU:
         vh_str = vh_str.replace("<radix_width>",  str(self.arch_dbs["sys_params"]["datapath_radix"]))
 
         filename = "gbl_params"
-        with open("monarch/cache/{}.vh".format(filename), "w+") as output_file:
+        with open(os.path.join(cache_path, "{}.vh".format(filename)), "w+") as output_file:
             output_file.write(vh_str)
 
 class Tile:
@@ -747,7 +748,7 @@ class Tile:
         for i in range(self.mem_banks):
 
             # File 1: The control parameters used to determine the memory termination, etc.
-            with open("monarch/cache/ctrl_params_bank{}.mem".format(i), "w+") as file:
+            with open(os.path.join(cache_path, "ctrl_params_bank{}.mem".format(i)), "w+") as file:
                 total_size = bank_n_rd_cell[i] * ((n_insts // self.columns) - 1)
                 
                 file.write(convert_to_fixed(total_size, 16, 0) + '\n')
@@ -757,14 +758,14 @@ class Tile:
             # File 2: The actual memory files.
             for bank_i, mem_bank in enumerate(final_banks):
                 for col_i, mem_col in enumerate(mem_bank):
-                    with open("monarch/cache/memfile_bank{}_col{}.mem".format(bank_i, col_i), "w+") as file:
+                    with open(os.path.join(cache_path, "memfile_bank{}_col{}.mem".format(bank_i, col_i)), "w+") as file:
                         for dat in mem_col:
                             file.write(convert_to_fixed(dat, self.dpath_width, self.dpath_radix) + '\n')
 
             # File 3: The register reference files.
             for bank_i, name_set in enumerate(bank_names):
-                rd_reg_file = open("monarch/cache/rd_regrefs_bank{}.mem".format(bank_i), "w+")
-                wr_reg_file = open("monarch/cache/wr_regrefs_bank{}.mem".format(bank_i), "w+")
+                rd_reg_file = open(os.path.join(cache_path, "rd_regrefs_bank{}.mem".format(bank_i)), "w+")
+                wr_reg_file = open(os.path.join(cache_path, "wr_regrefs_bank{}.mem".format(bank_i)), "w+")
 
                 for name in name_set:
                     if name in list(self.hardware_unit.start_locs.keys()):
@@ -782,7 +783,7 @@ class Tile:
                 wr_reg_file.close()
 
     def compile_consts(self, sys_data):
-        with open("monarch/cache/TEST_CONSTS.mem", "w+") as file:
+        with open(os.path.join(cache_path, "TEST_CONSTS.mem"), "w+") as file:
             for name in self.const_names:
                 file.write(convert_to_fixed(sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
 
@@ -806,7 +807,7 @@ class Tile:
         sv_str = sv_str.replace("<n_ext_rd_ports>", str(self.arch_dbs["manycore_params"]["mem_banks"]))
         sv_str = sv_str.replace("<n_ext_wr_ports>", str(self.arch_dbs["manycore_params"]["mem_banks"]))
         
-        with open("monarch/cache/tile_pkg.sv", "w+") as file:
+        with open(os.path.join(cache_path, "tile_pkg.sv"), "w+") as file:
             file.write(sv_str)
     
     def resynth_luts(self):
