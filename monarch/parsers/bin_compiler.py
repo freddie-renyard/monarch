@@ -18,6 +18,13 @@ def convert_to_uint(target, width):
     bin_str = str(BitArray(uint=target, length=width).bin)
     return bin_str
 
+def twos_to_uint(target, width):
+    signed_int = BitArray(bin=target).int
+    return str(BitArray(int=-signed_int, length=width).bin)
+
+def bin_to_int(target):
+    return BitArray(bin=target).int
+
 def convert_to_hex(number):
     if len(number) % 4 == 0:
         return str(BitArray(bin=number))[2:]

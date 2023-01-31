@@ -3,12 +3,17 @@ from doctest import testfile
 import numpy as np
 import os 
 import json
-from math import ceil, log2
+from math import ceil, log2, floor
 from matplotlib import pyplot as plt
+from bin_compiler import convert_to_fixed, twos_to_uint, bin_to_int
 
-def get_max_val(width, radix):
+def get_max_val (width, radix):
     if width == 0: return 0.0
-    return int("0b" + "1"*(width), 2) / (2.0 ** radix)
+    return int("0b0" + "1"*(width-1), 2) / (2.0 ** radix)
+
+def get_min_abs_val(width, radix):
+    if width == 0: return 0.0
+    return int("0b" + "0"*(width-1) + "1", 2) / (2.0 ** radix)
 
 def generate_lut(addr_depth, arch_fn, width, radix):
     # Generates look up tables for the LUT unit in hardware.
@@ -29,44 +34,64 @@ def generate_lut(addr_depth, arch_fn, width, radix):
     target_fn = eval(target_dat["fn"])
     vfunc = np.vectorize(target_fn)
 
-    test_x = []
-    test_y = []
-
-    for sign in range(2):
+    if arch_fn == "e":
+        # Calculate the maximum input value that it is worth synthesising
+        # the look-up table to.
+        max_out_val = get_max_val(width, radix)
+        max_in_val = np.log(max_out_val)
         
-        entry_fn = eval(target_dat["entries_fn"])
-            
-        uint_width = width - 1
-        range_pairs = [[get_max_val(x, radix), get_max_val(x+1, radix)] for x in range(uint_width)]
-        range_pairs = np.array(range_pairs)
-        range_pairs_ld_zs = [x for x in range(0, uint_width)][::-1]
+        min_out_val = get_min_abs_val(width, radix)
+        min_in_val = np.log(min_out_val)
+        
+        # Clip the values to the nearest lower power of two to ensure full
+        # use of the table size.
+        max_in_val = float(2 ** floor(log2(abs(max_in_val)))) 
+        min_in_val = -float(2 ** floor(log2(abs(min_in_val))))
 
-        # Sign the range pairs if needed.
-        if sign: 
-            range_pairs *= -1.0
+        max_bin = convert_to_fixed(max_in_val, width, radix)
+        min_bin = convert_to_fixed(min_in_val, width, radix)
 
-        for (min_in, max_in), ld_zs in zip(range_pairs, range_pairs_ld_zs):
-            
-            # Normalise the number of leading zeros to within [0, 1] <-> [min, max]
-            norm_ld_zs = float(ld_zs) / (uint_width-1)
+        max_int = bin_to_int(max_bin)
+        min_int = -bin_to_int(twos_to_uint(min_bin, width))
+        val_range = max_int - min_int
+        
+        clog_range = ceil(log2(val_range))
+        targ_range = ceil(log2(target_dat["table_size"]))
+        shift_val = clog_range - targ_range
+        
+        bin_ins  = []
+        bin_outs = []
+        sign_offset = int(target_dat["table_size"] / 2)
 
-            # Compute the size of the LUT for the specific range group.
-            entry_n = 2 ** ceil(log2(entry_fn(norm_ld_zs)))
-            
-            # Generate the linspace needed to compute the target function.
-            out_space = np.linspace(min_in, max_in, entry_n)
-            out_vals = vfunc(out_space)
+        for i in range(target_dat["table_size"]):
+            #inputs = sample_in_space[int(i*sample_rat):int((i+1)*sample_rat)]
+            #outputs = vfunc(inputs)
+            in_val = (i - sign_offset) << shift_val
+            in_val = float(in_val) / float(2 ** radix)
 
-            test_x = [*test_x, *out_space]
-            test_y = [*test_y, *out_vals]
+            bin_in = convert_to_fixed(in_val, width, radix)
+            bin_out = convert_to_fixed(target_fn(in_val), width, radix)
+            bin_ins.append(bin_in)
+            bin_outs.append(bin_out)
 
-    # Generate test data
-    linspace = np.linspace((-2.0 ** uint_width) / (2.0 ** radix), (2.0 ** uint_width) / (2.0 ** radix))
-    y_dat = vfunc(linspace)
+        # Reorder the address space to allow for contiguous memory representation.
+        int_bin_outs = [bin_to_int("0" + x[width - targ_range - shift_val:width - targ_range]) for x in bin_ins]
 
-    plt.plot(linspace, y_dat, color='red')
-    plt.scatter(test_x, test_y)
-    plt.show()
+        for val in bin_ins:
+            print(val)
+        sorted_is = np.argsort(int_bin_outs)
+        sorted_table = np.array(bin_outs)[sorted_is]
+
+        with open("monarch/cache/{}_lut_{}.mem".format(arch_fn, target_dat["table_size"]), "w+") as file:
+            for val in sorted_table:
+                file.write(str(val) + "\n")
+    else:
+        raise Exception("MONARCH - LUT instruction target function not recognised: {}".format(arch_fn))
 
 if __name__ == "__main__":
-    generate_lut(8, "e", 16, 12)
+    generate_lut(8, "e", 32, 16)
+
+    """TODO 
+    - Convert the address binning to analyse the function variance directly.
+    - Create the file save mechanisms for the look up tables.
+    """
