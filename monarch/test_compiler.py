@@ -3,6 +3,7 @@ from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
 from simulators.simulators import pipeline_eumulator, simulate_system
 import numpy as np
+from copy import copy
 
 def oregonator_model():
 
@@ -64,8 +65,27 @@ def hodgkin_huxley():
         "h": 0.59612075
     }
 
+    instances = 10
+    sys_data = {
+        "g_K": 36.0,
+        "g_Na": 120.0,
+        "g_L": 0.3,
+        "V_K": -12.0,
+        "V_Na": 115.0,
+        "V_L": 10.613,
+        "Cm": 1.0,
+        "I_in": 10,
+        "e": 2.71,
 
-    return test_equ, args, init_state
+        "v": 0.0,
+        "n": 0.31767691,
+        "m": 0.05293249,
+        "h": 0.59612075,
+
+        "dt": 1.0/128.0
+    }
+
+    return test_equ, args, init_state, sys_data, instances
 
 def lorenz_attractor():
 
@@ -79,13 +99,25 @@ def lorenz_attractor():
         "sigma": 10,
         "rho": 10
     }
+
     init_state = {
         "x": 1.0,
         "y": 0,
         "z": 0
     }
 
-    return test_equ, args, init_state
+    instances = 10
+    sys_data = {
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0,
+        "b": 8.0/3.0, # np.random.uniform(4.0/3.0, 16.0/3.0, instances),
+        "sigma": 10.0, # np.random.uniform(5, 50, instances),
+        "rho": 10.0, #np.random.uniform(5, 50, instances),
+        "dt": 1.0/128.0
+    }
+
+    return test_equ, args, init_state, sys_data, instances
 
 def cicr():
 
@@ -140,7 +172,7 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state = lorenz_attractor()
+    test_equ, args, init_state, sys_data, instances = hodgkin_huxley()
 
     dt = 1.0/128.0
     compiled_cfg = eq_to_cfg(test_equ)
@@ -148,17 +180,6 @@ if __name__ == "__main__":
 
     #pipelined_cfg.show_report()
     hardware_unit = ManycoreUnit(pipelined_cfg, args, init_state, dt=dt)
-
-    instances = 10
-    sys_data = {
-        "x": 1.0,
-        "y": 0.0,
-        "z": 0.0,
-        "b": 8.0/3.0, # np.random.uniform(4.0/3.0, 16.0/3.0, instances),
-        "sigma": 10.0, # np.random.uniform(5, 50, instances),
-        "rho": 10.0, #np.random.uniform(5, 50, instances),
-        "dt": 1.0/128.0
-    }
 
     tile = Tile(
         hardware_unit,
