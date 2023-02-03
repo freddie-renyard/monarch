@@ -83,7 +83,7 @@ def generate_lut(arch_fn):
         sorted_table = np.array(bin_outs)[sorted_is]
 
         # Write table to file.
-        with open("monarch/cache/{}_lut_{}.mem".format(arch_fn, target_dat["table_size"]), "w+") as file:
+        with open("monarch/cache/{}_lut.mem".format(arch_fn), "w+") as file:
             file.write("// Lookup table for {} function, {} entries. \n".format(arch_fn, target_dat["table_size"]))
             for val in sorted_table:
                 file.write(str(val) + "\n")
