@@ -7,6 +7,7 @@ from parsers.asm_compiler import instr_to_machcode, preprocess_asm
 from parsers.lut_compiler import generate_lut
 from sympy import Symbol, sympify, Float
 import json
+from copy import copy
 import os
 
 cache_path = "monarch/cache"
@@ -665,6 +666,10 @@ class Tile:
         self.hardware_unit = hardware_unit
         self.sys_state_vars = list(sys_state_vars)
 
+        self.sys_data = copy(sys_data)
+        for key, item in zip(hardware_unit.const_names, hardware_unit.consts):
+            self.sys_data.update({key: item})
+        
         # Open architecture database.
         script_dir = os.path.dirname(__file__)
         rel_path = "arch_dbs.json"
@@ -683,12 +688,12 @@ class Tile:
         if instances % self.columns != 0:
             raise Exception("MONARCH - The total number of instances does not divide evenly into the number of columns specified.")
 
-        self.var_names, self.const_names = self.partition_variables(const_names, list(sys_state_vars))
-        
+        self.var_names, self.const_names = self.partition_variables(hardware_unit.const_names, list(sys_state_vars))
+        print(self.var_names, self.const_names)
         self.resynth_luts()
 
-        self.generate_insts(instances, sys_data)
-        self.compile_consts(sys_data)
+        self.generate_insts(instances)
+        self.compile_consts()
 
         self.compile_pkg()
 
@@ -699,7 +704,7 @@ class Tile:
         # 3. Constants
 
         inst_var_names, const_names, = [], []
-        for var in self.hardware_unit.args:
+        for var in self.sys_data:
             if str(var) in sys_consts:
                 const_names.append(var)
             elif str(var) not in sys_state_vars:
@@ -711,7 +716,7 @@ class Tile:
 
         return vars, const_names
 
-    def generate_insts(self, n_insts, sys_data):
+    def generate_insts(self, n_insts):
         # Uses the data passed to the object to construct different instances of
         # the model.
 
@@ -733,10 +738,10 @@ class Tile:
         for i in range(n_insts):
             for j, bank in enumerate(bank_names):
                 for key in bank:
-                    if hasattr(sys_data[key], "__iter__"):
-                        structured_banks[j].append(sys_data[key][i]) 
+                    if hasattr(self.sys_data[key], "__iter__"):
+                        structured_banks[j].append(self.sys_data[key][i]) 
                     else:
-                        structured_banks[j].append(sys_data[key]) 
+                        structured_banks[j].append(self.sys_data[key]) 
         
         # Structure the data into columns
         final_banks = [[[] for _ in range(self.columns)] for _ in range(self.mem_banks)]
@@ -782,10 +787,10 @@ class Tile:
                 rd_reg_file.close()
                 wr_reg_file.close()
 
-    def compile_consts(self, sys_data):
+    def compile_consts(self):
         with open(os.path.join(cache_path, "TEST_CONSTS.mem"), "w+") as file:
             for name in self.const_names:
-                file.write(convert_to_fixed(sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
+                file.write(convert_to_fixed(self.sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
 
     def compile_pkg(self):
         # Compiles the package file for the tile hardware. Used for FPGA implementations where
