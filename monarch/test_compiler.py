@@ -188,6 +188,10 @@ if __name__ == "__main__":
         init_state.keys()
     )
 
+    simulate_system(
+        test_equ, init_state, args, sim_time=100, dt=1.0/128.0
+    )
+
 """
     test_equ, args, init_state = hodgkin_huxley()
     

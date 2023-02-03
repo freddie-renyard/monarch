@@ -300,6 +300,7 @@ def simulate_system(eqs, initial_state, args, sim_time=10, dt=0.001):
     solution = scipy.integrate.solve_ivp(sys_f, (0, sim_time), input_init_state, t_eval=t_eval, args=input_args)
     sim_dat = solution.y.T
 
+    print(sim_dat[:10])
     plt.title("Numerical Simulation Data")
     plt.plot(sim_dat)
 
