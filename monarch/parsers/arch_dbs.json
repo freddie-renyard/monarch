@@ -11,6 +11,8 @@
         "mem_bank_size": 256,
         "working_regs": 24,
         "output_regs": 8,
+        "pre_alu_dly": 0,
+        "post_alu_dly": 1,
         "machcode_params": {
             "op_width": 5,
             "reg_ptr_width": 5,
@@ -21,7 +23,7 @@
         "mult": {
             "block_name": "MULTIPLY",
             "op_index": 1,
-            "delay": 2,
+            "delay": 1,
             "input_num": 2,
             "precedence": false,
             "op": "lambda a, b: a * b",
@@ -29,7 +31,7 @@
         },
         "add": {
             "block_name": "ADD",
-            "delay": 2,
+            "delay": 1,
             "op_index": 2,
             "input_num": 2,
             "precedence": false,
@@ -38,7 +40,7 @@
         },
         "sub": {
             "block_name": "SUBTRACT",
-            "delay": 2,
+            "delay": 1,
             "op_index": 3,
             "input_num": 2,
             "precedence": true,
@@ -47,7 +49,7 @@
         },
         "div": {
             "block_name": "DIVIDE",
-            "delay": 13,
+            "delay": 12,
             "op_index": 4,
             "input_num": 2,
             "precedence": true,
@@ -56,7 +58,7 @@
         },
         "square": {
             "block_name": "SQUARER",
-            "delay": 2,
+            "delay": 1,
             "op_index": 5,
             "input_num": 1,
             "precedence": false,
@@ -65,7 +67,7 @@
         },
         "lut": {
             "block_name": "LOOK_UP_TABLE",
-            "delay": 2,
+            "delay": 1,
             "op_index": 6,
             "input_num": 1,
             "precedence": false,

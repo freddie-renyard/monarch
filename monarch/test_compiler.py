@@ -188,36 +188,8 @@ if __name__ == "__main__":
         init_state.keys()
     )
 
+    """
     simulate_system(
         test_equ, init_state, args, sim_time=100, dt=1.0/128.0
     )
-
-"""
-    test_equ, args, init_state = hodgkin_huxley()
-    
-    simulate_system(
-        test_equ, init_state, args, sim_time=100, dt=0.001
-    )
-"""
-
-"""
-    test_equ, args, init_state = lorenz_attractor()
-
-    dt = 1.0/128.0
-    compiled_cfg = eq_to_cfg(test_equ)
-
-    pipelined_cfg = cfg_to_pipeline(compiled_cfg)
-    #pipelined_cfg.show_report()
-    
-    pipeline_eumulator(
-        test_equ, 
-        pipelined_cfg, 
-        init_state, 
-        args,
-        sim_time=dt * 100,
-        dt=dt
-    )
-
-    cfgu = CFGU()
-    hardware_unit = ManycoreUnit(pipelined_cfg, args, init_state, dt=dt)
-"""
+    """

@@ -419,6 +419,14 @@ class ManycoreUnit:
 
             new_instrs = []
 
+            """
+            # Add each instruction to the register map.
+            for i, reg in enumerate(reg_map):
+                print(i, reg)
+            print()
+            input()
+            """
+
             # Allocate an instruction to each core.
             for i in range(self.cores):
                 op, completed = allocate_core_instr(
@@ -435,8 +443,6 @@ class ManycoreUnit:
 
                 new_instrs.append(op)
 
-            # Add each instruction to the register map.
-            
             for core_instr in new_instrs:
                 reg_map, self.end_locs = update_reg_map(
                     reg_map, 

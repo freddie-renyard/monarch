@@ -4,6 +4,28 @@ from shutil import ExecError
 import numpy as np
 from parsers.bin_compiler import convert_to_uint
 
+def compute_instr_dly(dbs, instr_name):
+
+    dly_val = dbs["opcodes"][instr_name]["delay"]
+    dly_val += dbs["manycore_params"]["pre_alu_dly"]
+    dly_val += dbs["manycore_params"]["post_alu_dly"]
+
+    return dly_val + 1 # Add one to compensate for the clock cycle update in the emulator
+
+def check_instr_against_reg_map(op, reg_map, dbs):
+    # This function checks if an operation's delay will result in an ALU output bus clash.
+    # If so, the instruction allocator can mark it as invalid in this cycle.
+
+    dly_val = compute_instr_dly(dbs, op)
+    
+    for reg in reg_map:
+        if reg["s"] == 'wait':
+            if reg['dly'] == dly_val:
+                # There will be a bus clash; mark op as invalid for this cycle
+                return False 
+
+    return True
+
 def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, avail_consts, dbs, primaries=[], completed=[]):
     # Searches through the source nodes and allocates an instruction
     # based on available operands.
@@ -44,12 +66,18 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, 
         for ind in source_is[0]:
             if str(source_nodes[ind]) in avail_dat:
                 if sink_i not in completed:
-                    comp_source_ops = False
+
+                    # Determine the target instruction.
+                    op = sink_nodes[sink_i].split("_")[0]
+
+                    # Ensure that the target instruction doesn't clash with a future ALU output bus allocation.
+                    if check_instr_against_reg_map(op, reg_map, dbs):
+                        comp_source_ops = False
             else:
                 comp_source_ops = True
                 break       
-
-    op = sink_nodes[sink_i].split("_")[0]
+    
+    print()
 
     if dbs['opcodes'][op]['input_num'] == 1:
         if op == 'square':
@@ -102,7 +130,7 @@ def update_reg_map(reg_map, core_instr, terminal_instrs, terminal_vars, out_reg_
             
             instr_name = core_instr[0]
             reg_map[reg_i]["d"] = core_instr[3] # Set register data to result name.
-            reg_map[reg_i]["dly"] = dbs["opcodes"][instr_name]["delay"] + 1 # Add one for the final register write
+            reg_map[reg_i]["dly"] = compute_instr_dly(dbs, instr_name)
             reg_map[reg_i]["s"] = "wait"
 
             return reg_map, out_regs
