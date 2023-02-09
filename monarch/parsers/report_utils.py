@@ -11,7 +11,7 @@ def stringify_lst(lst):
 
 def plot_mat(mats, source_nodes, sink_nodes, mat_titles=[], save_fig=True):
 
-    plt.rc('font', size=4)
+    plt.rc('font', size=1)
 
     # stringify source and sink nodes
     source_nodes = stringify_lst(source_nodes)

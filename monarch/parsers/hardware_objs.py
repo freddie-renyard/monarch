@@ -419,14 +419,6 @@ class ManycoreUnit:
 
             new_instrs = []
 
-            """
-            # Add each instruction to the register map.
-            for i, reg in enumerate(reg_map):
-                print(i, reg)
-            print()
-            input()
-            """
-
             # Allocate an instruction to each core.
             for i in range(self.cores):
                 op, completed = allocate_core_instr(
@@ -694,8 +686,8 @@ class Tile:
         if instances % self.columns != 0:
             raise Exception("MONARCH - The total number of instances does not divide evenly into the number of columns specified.")
 
-        self.var_names, self.const_names = self.partition_variables(hardware_unit.const_names, list(sys_state_vars))
-        print(self.var_names, self.const_names)
+        self.var_names, _ = self.partition_variables(hardware_unit.const_names, list(sys_state_vars))
+        self.const_names = hardware_unit.const_names
         self.resynth_luts()
 
         self.generate_insts(instances)
@@ -795,7 +787,7 @@ class Tile:
 
     def compile_consts(self):
         with open(os.path.join(cache_path, "TEST_CONSTS.mem"), "w+") as file:
-            for name in self.const_names:
+             for name in self.const_names:
                 file.write(convert_to_fixed(self.sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
 
     def compile_pkg(self):

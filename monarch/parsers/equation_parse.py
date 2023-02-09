@@ -433,9 +433,6 @@ def eq_to_cfg(eq):
         
         print("MONARCH - Computational flow graph optimisation for {} complete. Cycles: {}".format(lhs, opt_passes-1))
 
-        #pretty = json.dumps(convert_to_str(cfg), indent=2)
-        #print(pretty)
-
         # Cleanup the graph by checking operations and substituting SymPy expressions
         # for monarch opcodes.
         # Open architecture database. TODO Combine into utility function with other instance of the code below

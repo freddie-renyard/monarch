@@ -178,7 +178,6 @@ if __name__ == "__main__":
     compiled_cfg = eq_to_cfg(test_equ)
     pipelined_cfg = cfg_to_pipeline(compiled_cfg)
 
-    #pipelined_cfg.show_report()
     hardware_unit = ManycoreUnit(pipelined_cfg, args, init_state, dt=dt)
 
     tile = Tile(
@@ -188,8 +187,6 @@ if __name__ == "__main__":
         init_state.keys()
     )
 
-    """
     simulate_system(
         test_equ, init_state, args, sim_time=100, dt=1.0/128.0
     )
-    """
