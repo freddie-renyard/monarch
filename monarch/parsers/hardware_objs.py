@@ -340,10 +340,10 @@ class ManycoreUnit:
 
         self.clear_cache()
 
-        asm = self.compile_instrs()
+        asm = self.compile_instrs(verbose=True)
 
         self.report_exec_time(asm)
-        self.asm_to_machcode(asm)
+        self.asm_to_machcode(asm, verbose=True)
 
     def compile_instrs(self, verbose=False):
         
@@ -464,7 +464,7 @@ class ManycoreUnit:
 
         return asm
 
-    def asm_to_machcode(self, asm, verbose=True):
+    def asm_to_machcode(self, asm, verbose=False):
         # Compile threads of assembly into machine code, as per the manycore MONArch ISA.
 
         # Perform nop collapse to compress memory footprint.
@@ -774,12 +774,11 @@ class Tile:
                     if name in list(self.hardware_unit.start_locs.keys()):
                         target = self.hardware_unit.start_locs[name]
                     elif (str(name) + "_pre") in list(self.hardware_unit.start_locs.keys()):
-                        
                         target = self.hardware_unit.start_locs[str(name) + "_pre"]
                         wr_target = self.hardware_unit.end_locs[name + "_post"]
 
                         wr_reg_file.write(convert_to_fixed(wr_target, self.reg_width, 0, signed=False) + '\n')
-
+                    
                     rd_reg_file.write(convert_to_fixed(target, self.reg_width, 0, signed=False) + '\n')
 
                 rd_reg_file.close()
@@ -787,7 +786,7 @@ class Tile:
 
     def compile_consts(self):
         with open(os.path.join(cache_path, "TEST_CONSTS.mem"), "w+") as file:
-             for name in self.const_names:
+            for name in self.const_names:
                 file.write(convert_to_fixed(self.sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
 
     def compile_pkg(self):

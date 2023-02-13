@@ -1,5 +1,6 @@
 from ast import excepthandler
 from doctest import testfile
+from turtle import color
 import numpy as np
 import os 
 import json
@@ -34,7 +35,6 @@ def generate_lut(arch_fn):
         raise Exception("MONARCH - Operation not recognised: {}".format(arch_fn))
 
     target_fn = eval(target_dat["fn"])
-    vfunc = np.vectorize(target_fn)
 
     if arch_fn == "e":
         # Calculate the maximum input value that it is worth synthesising
@@ -44,7 +44,7 @@ def generate_lut(arch_fn):
         
         min_out_val = get_min_abs_val(width, radix)
         min_in_val = np.log(min_out_val)
-        
+
         # Clip the values to the nearest lower power of two to ensure full
         # use of the table size.
         max_in_val = float(2 ** floor(log2(abs(max_in_val)))) 
@@ -61,6 +61,7 @@ def generate_lut(arch_fn):
         targ_range = ceil(log2(target_dat["table_size"]))
         shift_val = clog_range - targ_range
         
+        float_ins = []
         bin_ins  = []
         bin_outs = []
         sign_offset = int(target_dat["table_size"] / 2)
@@ -69,7 +70,10 @@ def generate_lut(arch_fn):
             #inputs = sample_in_space[int(i*sample_rat):int((i+1)*sample_rat)]
             #outputs = vfunc(inputs)
             in_val = (i - sign_offset) << shift_val
+
             in_val = float(in_val) / float(2 ** radix)
+
+            float_ins.append(in_val)
 
             bin_in = convert_to_fixed(in_val, width, radix)
             bin_out = convert_to_fixed(target_fn(in_val), width, radix)

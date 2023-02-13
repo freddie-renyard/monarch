@@ -54,8 +54,7 @@ def hodgkin_huxley():
         "V_Na": 115.0,
         "V_L": 10.613,
         "Cm": 1.0,
-        "I_in": 10,
-        "e": 2.71
+        "I_in": 10
     }
 
     init_state = {
@@ -75,7 +74,6 @@ def hodgkin_huxley():
         "V_L": 10.613,
         "Cm": 1.0,
         "I_in": 10,
-        "e": 2.71,
 
         "v": 0.0,
         "n": 0.31767691,
@@ -186,7 +184,8 @@ if __name__ == "__main__":
         sys_data,
         init_state.keys()
     )
-
+    """
     simulate_system(
         test_equ, init_state, args, sim_time=100, dt=1.0/128.0
     )
+    """

@@ -77,8 +77,6 @@ def allocate_core_instr(conn_mat, source_nodes, sink_nodes, reg_map, assoc_dat, 
                 comp_source_ops = True
                 break       
     
-    print()
-
     if dbs['opcodes'][op]['input_num'] == 1:
         if op == 'square':
             in_0 = source_nodes[target_column.nonzero()][0]
