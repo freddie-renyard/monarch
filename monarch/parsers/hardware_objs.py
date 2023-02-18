@@ -666,6 +666,9 @@ class Tile:
         self.columns     = dbs["manycore_params"]["columns"]
         self.mem_banks   = dbs["manycore_params"]["mem_banks"]
 
+        if (self.n_mantissa + self.n_exponent + 1) != self.dpath_width:
+            raise Exception("MONARCH - The floating point bit depths do not match the specified datapath size (man: {} exp {} total {})".format(self.n_mantissa, self.n_exponent, self.dpath_width))
+        
         if instances % self.columns != 0:
             raise Exception("MONARCH - The total number of instances does not divide evenly into the number of columns specified.")
 
