@@ -1,7 +1,7 @@
 from mimetypes import init
 from re import sub
 from tabnanny import verbose
-from xml.etree import ElementPath
+import math
 from sympy import Symbol, sympify, lambdify, symbols
 import numpy as np
 import scipy.integrate
@@ -51,7 +51,17 @@ def parse_eqs(eq_str):
     return sys_dot, ret_vars, deriv_strs
 
 def extract_arg_vals(arg_dict, arg_symbols):
-    return [arg_dict[str(symbol)] for symbol in arg_symbols]
+    arg_vals = []
+    for symbol in arg_symbols:
+        try:
+            arg_vals.append(arg_dict[str(symbol)])
+        except:
+            if str(symbol) == "e":
+                arg_vals.append(math.e)
+            else:
+                raise Exception("System symbol {} not recognised".format(symbol))
+
+    return arg_vals
 
 def extract_var_class(nodes, filter_str):
     # Extract the output variables from a list of sink nodes.
@@ -286,13 +296,13 @@ def pipeline_eumulator(eqs, graph_unit, initial_state, args, sim_time=10, dt=0.0
     plt.show()
     """
 
-def simulate_system(eqs, initial_state, args, sim_time=10, dt=0.001):
+def simulate_system(eqs, sys_data, sim_time=10, dt=0.001):
 
     # Parse sympy equations.
     sys_dot, inputs, dim_names = parse_eqs(eqs)
 
-    input_args = extract_arg_vals(args, inputs[2:])
-    input_init_state = extract_arg_vals(initial_state, inputs[1])
+    input_args = extract_arg_vals(sys_data, inputs[2:])
+    input_init_state = extract_arg_vals(sys_data, inputs[1])
     t_eval = np.linspace(0, sim_time, int(float(sim_time) / dt))
 
     # Numerically solve the system. 

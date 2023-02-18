@@ -778,7 +778,7 @@ class Tile:
                         wr_target = self.hardware_unit.end_locs[name + "_post"]
 
                         wr_reg_file.write(convert_to_fixed(wr_target, self.reg_width, 0, signed=False) + '\n')
-                    
+
                     rd_reg_file.write(convert_to_fixed(target, self.reg_width, 0, signed=False) + '\n')
 
                 rd_reg_file.close()
