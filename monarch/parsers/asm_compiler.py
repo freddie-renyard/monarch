@@ -213,7 +213,7 @@ def collapse_nops(asm):
         else:
             if nop_ctr:
                 new_asm.append(
-                    ['nop', None, nop_ctr, None]
+                    ['nop', None, nop_ctr-1, None]
                 )
                 new_asm.append(
                     instr
@@ -223,7 +223,7 @@ def collapse_nops(asm):
                 new_asm.append(instr)
     if nop_ctr:
         new_asm.append(
-            ['nop', None, nop_ctr, None]
+            ['nop', None, nop_ctr-1, None]
         )
 
     return new_asm
