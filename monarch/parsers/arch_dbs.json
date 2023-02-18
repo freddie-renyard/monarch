@@ -2,7 +2,9 @@
     "description": "This database contains architecture parameters for the pipelined MonArch architecture.",
     "sys_params": {
         "datapath_width": 32,
-        "datapath_radix": 16
+        "datapath_radix": 16,
+        "datapath_mantissa": 20,
+        "datapath_exponent": 11
     },
     "manycore_params": {
         "cores": 1,

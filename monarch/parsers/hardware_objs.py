@@ -1,4 +1,5 @@
 from asyncio.sslproto import constants
+from parsers.float_compiler import BinCompiler
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
@@ -532,7 +533,6 @@ class HardwareUnit:
             self.arch_dbs = dbs
 
         self.compile_to_header("gu_params")
-        self.compile_model_inst_vars()
 
     def lst_to_str(self, target_lst, newlines=False):
         
@@ -555,25 +555,6 @@ class HardwareUnit:
             return self.arch_dbs["opcodes"][target_op]["op_index"]
         else:
             return 0
-
-    def compile_model_inst_vars(self):
-        # Compiles the variables of a model into their binary representation.
-
-        data_width = self.arch_dbs["sys_params"]["datapath_width"]
-        radix = self.arch_dbs["sys_params"]["datapath_radix"]
-        
-        for key in self.args:
-            if len([self.args[key]]) == 1:
-                output = [convert_to_fixed(self.args[key], data_width, radix)]
-            else:
-                output = convert_to_fixed(self.args[key], data_width, radix)
-            
-            output = [convert_to_hex(x) for x in output]
-
-            with open(os.path.join(cache_path, "{}_{}_state".format(self.name, key)), "w+") as file:
-                for hex_num in output:
-                    file.write(hex_num)
-                    file.write("\n")
 
     def compile_to_header(self, filename):
         # This method compiles a target unit to a verilog header 
@@ -659,7 +640,7 @@ class CFGU:
 
 class Tile:
 
-    def __init__(self, hardware_unit, instances, sys_data, sys_state_vars, const_names=['dt']):
+    def __init__(self, hardware_unit, instances, sys_data, sys_state_vars, const_names=['dt'], fixed_point=False):
 
         self.hardware_unit = hardware_unit
         self.sys_state_vars = list(sys_state_vars)
@@ -679,6 +660,8 @@ class Tile:
 
         self.dpath_radix = dbs["sys_params"]["datapath_radix"]
         self.dpath_width = dbs["sys_params"]["datapath_width"]
+        self.n_mantissa  = dbs["sys_params"]["datapath_mantissa"]
+        self.n_exponent  = dbs["sys_params"]["datapath_exponent"]
         self.reg_width   = dbs["manycore_params"]["machcode_params"]["reg_ptr_width"]
         self.columns     = dbs["manycore_params"]["columns"]
         self.mem_banks   = dbs["manycore_params"]["mem_banks"]
@@ -690,8 +673,8 @@ class Tile:
         self.const_names = hardware_unit.const_names
         self.resynth_luts()
 
-        self.generate_insts(instances)
-        self.compile_consts()
+        self.generate_insts(instances, fixed_point=fixed_point)
+        self.compile_consts(fixed_point=fixed_point)
 
         self.compile_pkg()
 
@@ -714,7 +697,7 @@ class Tile:
 
         return vars, const_names
 
-    def generate_insts(self, n_insts):
+    def generate_insts(self, n_insts, fixed_point=True):
         # Uses the data passed to the object to construct different instances of
         # the model.
 
@@ -763,7 +746,11 @@ class Tile:
                 for col_i, mem_col in enumerate(mem_bank):
                     with open(os.path.join(cache_path, "memfile_bank{}_col{}.mem".format(bank_i, col_i)), "w+") as file:
                         for dat in mem_col:
-                            file.write(convert_to_fixed(dat, self.dpath_width, self.dpath_radix) + '\n')
+                            if fixed_point:
+                                bin_str = convert_to_fixed(dat, self.dpath_width, self.dpath_radix)
+                            else:
+                                bin_str = BinCompiler.compile_to_float(dat, self.n_mantissa, self.n_exponent)
+                            file.write(bin_str + '\n')
 
             # File 3: The register reference files.
             for bank_i, name_set in enumerate(bank_names):
@@ -784,10 +771,15 @@ class Tile:
                 rd_reg_file.close()
                 wr_reg_file.close()
 
-    def compile_consts(self):
+    def compile_consts(self, fixed_point=True):
         with open(os.path.join(cache_path, "TEST_CONSTS.mem"), "w+") as file:
             for name in self.const_names:
-                file.write(convert_to_fixed(self.sys_data[name], self.dpath_width, self.dpath_radix) + '\n')
+                if fixed_point:
+                    dat = convert_to_fixed(self.sys_data[name], self.dpath_width, self.dpath_radix) 
+                else:
+                    dat = BinCompiler.compile_to_float(self.sys_data[name], self.n_mantissa, self.n_exponent)
+                
+                file.write(dat + '\n')
 
     def compile_pkg(self):
         # Compiles the package file for the tile hardware. Used for FPGA implementations where
