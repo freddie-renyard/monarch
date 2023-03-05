@@ -674,7 +674,7 @@ class Tile:
 
         self.var_names, _ = self.partition_variables(hardware_unit.const_names, list(sys_state_vars))
         self.const_names = hardware_unit.const_names
-        self.resynth_luts()
+        # self.resynth_luts()
 
         self.generate_insts(instances, fixed_point=fixed_point)
         self.compile_consts(fixed_point=fixed_point)

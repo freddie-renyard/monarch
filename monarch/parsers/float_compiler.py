@@ -14,8 +14,8 @@ class BinCompiler:
         # equal to the output depth.
         if n_output == n_radix and scaled_val == scale_factor:
             scaled_val -= 1
-
-        bin_str = str(BitArray(uint=scaled_val, length=n_output).bin)
+        
+        bin_str = str(BitArray(uint=int(scaled_val), length=n_output).bin)
 
         # Sign extend the output string
         while len(bin_str) < n_output:
