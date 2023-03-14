@@ -120,6 +120,73 @@ def compile_float_lut(arch_fn, n_mantissa_in, n_exp_in, n_mantissa_out, n_exp_ou
 
     save_lut_file(out_bin, False, arch_fn, target_dat, shift_val, width, 0, 0)
 
+def compile_custom_exp_lut(n_man, n_exp):
+    # Compiles an optimised lookup table for the exponential function.
+
+    target_dat, width, _ = get_arch_dat("e")
+    table_size = target_dat["table_size"]
+    
+    # Determine the minimum and maximum value that can be represented by
+    # the floating point format.
+    max_val = BinCompiler.decode_custom_float(
+        "0{}".format("1" * (n_man + n_exp)),
+        n_man,
+        n_exp
+    )
+
+    min_val = BinCompiler.decode_custom_float(
+        "0{}{}".format("0" * (n_exp-1) + "1", "0" * (n_man)),
+        n_man,
+        n_exp
+    )
+
+    # Compile a full float for every possible mantissa value from '0 to '1
+    man_bins = [BinCompiler.compile_to_uint(x, n_man+1, 0)[2:] for x in range(2 ** n_man)]
+    
+    # Compute the value of the exponential function for each mantissa value, as if there is an
+    man_vals = [BinCompiler.decode_custom_float(
+        "0" + ("1" + "0" * (n_exp-1)) + x,
+        n_man,
+        n_exp
+    ) for x in man_bins]
+
+    # Get the value of the exponential function at every mantissa value
+    man_exp_vals = [exp(x) for x in man_vals]
+
+    # Decimate the table to bring the mantissa into representation and determine
+    # the shift value
+    n_table = log2(table_size)
+
+    if not n_table.is_integer():
+        raise Exception("MONARCH - LUT table size must be a power of two; is currently {}".format(table_size))
+    
+    n_table = int(n_table)
+    shift_size = n_man - n_table
+    
+    if shift_size < 0:
+        raise Exception("The mantissa depth ({}) must be larger or equal to table depth ({})".format(n_man, n_table))
+
+    window = 2 ** (shift_size)
+    
+    reduc_exp_vals = [np.mean(man_exp_vals[x*window:(x+1)*window])for x in range(table_size)]
+    
+    # Compile the decimated exponent output values to floating point
+    exp_bins_full = [BinCompiler.compile_to_float(x, n_man, n_exp) for x in reduc_exp_vals]
+    
+    # Strip off the exponent and sign, and append to correction number to determine final values.
+    exp_bins_final = []
+    corr_size = 2
+    for bin in exp_bins_full:
+
+        # Compute the exponent correction needed to normalise the value
+        corr = int(bin[1:n_exp+1], 2) - (2 ** (n_exp-1))
+        corr_bin = BinCompiler.compile_to_uint(corr, corr_size, 0)
+        
+        # Strip off exponent and sign.
+        exp_bins_final.append(
+            corr_bin + bin[n_exp+1:]
+        )
+
 def save_lut_file(table, fixed_point, arch_fn, target_dat, shift_val=0, width=1, max_bin=0, min_bin=0):
     # Saves the LUT for a given function.
 

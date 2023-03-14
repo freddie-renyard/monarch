@@ -119,8 +119,8 @@ class BinCompiler:
         mantissa_str = "1" + bin_str[1+n_exp:]
 
         # Convert mantissa to decimal and convert to fixed representation
-        mantissa = int(mantissa_str, 2) / (2 ** (n_mantissa+1))
-
+        mantissa = int(mantissa_str, 2) / (2 ** (n_mantissa))
+        
         # Convert exponent to decimal
         exponent = int(exp_str, 2) 
         

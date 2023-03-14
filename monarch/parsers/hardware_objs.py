@@ -4,7 +4,7 @@ from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
 from parsers.asm_compiler import allocate_core_instr, update_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
 from parsers.asm_compiler import instr_to_machcode, preprocess_asm
-from parsers.lut_compiler import generate_lut, compile_float_lut
+from parsers.lut_compiler import generate_lut, compile_float_lut, compile_custom_exp_lut
 from sympy import Symbol, sympify, Float
 import json
 from copy import copy
@@ -811,6 +811,8 @@ class Tile:
         if fixed_point:
             generate_lut("e")
         else:
+            compile_custom_exp_lut(self.n_mantissa, self.n_exponent)
+            """
             compile_float_lut(
                 "e", 
                 self.n_mantissa, 
@@ -818,3 +820,4 @@ class Tile:
                 self.n_mantissa, 
                 self.n_exponent
             )
+            """

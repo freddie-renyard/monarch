@@ -150,7 +150,7 @@
     "lut_functions": {
         "e": {
             "subopcode": 0,
-            "table_size": 4096,
+            "table_size": 16,
             "fn": "lambda x: 2.71828182845 ** x",
             "entries_fn": "lambda x: 1024 ** x + 16"
         }
