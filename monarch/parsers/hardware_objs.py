@@ -1,11 +1,10 @@
-from asyncio.sslproto import constants
 from parsers.float_compiler import BinCompiler
 import numpy as np
 from parsers.report_utils import plot_mat
 from parsers.bin_compiler import convert_to_hex, convert_to_fixed
 from parsers.asm_compiler import allocate_core_instr, update_reg_map, update_clk_cycle, disp_exec_thread, find_terminal_instrs, find_stale_results, instr_to_asm, collapse_nops
 from parsers.asm_compiler import instr_to_machcode, preprocess_asm
-from parsers.lut_compiler import generate_lut
+from parsers.lut_compiler import generate_lut, compile_float_lut
 from sympy import Symbol, sympify, Float
 import json
 from copy import copy
@@ -674,7 +673,7 @@ class Tile:
 
         self.var_names, _ = self.partition_variables(hardware_unit.const_names, list(sys_state_vars))
         self.const_names = hardware_unit.const_names
-        # self.resynth_luts()
+        self.resynth_luts(fixed_point=fixed_point)
 
         self.generate_insts(instances, fixed_point=fixed_point)
         self.compile_consts(fixed_point=fixed_point)
@@ -807,6 +806,15 @@ class Tile:
         with open(os.path.join(cache_path, "tile_pkg.sv"), "w+") as file:
             file.write(sv_str)
     
-    def resynth_luts(self):
+    def resynth_luts(self, fixed_point=False):
         # Resynthesises the lookup tables to ensure that they are up to date with current system parameters.
-        generate_lut("e")
+        if fixed_point:
+            generate_lut("e")
+        else:
+            compile_float_lut(
+                "e", 
+                self.n_mantissa, 
+                self.n_exponent, 
+                self.n_mantissa, 
+                self.n_exponent
+            )

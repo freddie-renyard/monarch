@@ -4,6 +4,8 @@ import json
 from math import ceil, log2, floor
 from matplotlib import pyplot as plt
 from parsers.bin_compiler import convert_to_fixed, twos_to_uint, bin_to_int
+from parsers.float_compiler import BinCompiler
+from math import exp
 
 def get_max_val (width, radix):
     if width == 0: return 0.0
@@ -13,8 +15,7 @@ def get_min_abs_val(width, radix):
     if width == 0: return 0.0
     return int("0b" + "0"*(width-1) + "1", 2) / (2.0 ** radix)
 
-def generate_lut(arch_fn):
-    # Generates look up tables for the LUT unit in hardware.
+def get_arch_dat(arch_fn):
 
     # Open architecture database.
     script_dir = os.path.dirname(__file__)
@@ -30,6 +31,13 @@ def generate_lut(arch_fn):
         target_dat = dbs["lut_functions"][arch_fn]
     except:
         raise Exception("MONARCH - Operation not recognised: {}".format(arch_fn))
+
+    return target_dat, width, radix
+
+def generate_lut(arch_fn):
+    # Generates look up tables for the LUT unit in hardware.
+
+    target_dat, width, radix = get_arch_dat(arch_fn)
 
     target_fn = eval(target_dat["fn"])
 
@@ -83,21 +91,56 @@ def generate_lut(arch_fn):
         sorted_is = np.argsort(int_bin_outs)
         sorted_table = np.array(bin_outs)[sorted_is]
 
-        # Write table to file.
-        with open("monarch/cache/{}_lut.mem".format(arch_fn), "w+") as file:
-            file.write("// Lookup table for {} function, {} entries. \n".format(arch_fn, target_dat["table_size"]))
-            for val in sorted_table:
-                file.write(str(val) + "\n")
-
-        # Write all parameters needed for this module to function properly to a pkg file.
-        with open("monarch/dbs/lut_pkg_template.sv") as file:
-            pkg_str = file.read()
-            pkg_str = pkg_str.replace("<table_size>", str(target_dat["table_size"]))
-            pkg_str = pkg_str.replace("<shift_val>", str(shift_val))
-            pkg_str = pkg_str.replace("<max_val>", "{}'b".format(width) + str(max_bin))
-            pkg_str = pkg_str.replace("<min_val>", "{}'b".format(width) + str(min_bin))
-        
-        with open("monarch/cache/lut_pkg.sv", "w+") as file:
-            file.write(pkg_str)
+        save_lut_file(sorted_table, True, arch_fn, target_dat, shift_val, width, max_bin, min_bin)
     else:
         raise Exception("MONARCH - LUT instruction target function not recognised: {}".format(arch_fn))
+
+def compile_float_lut(arch_fn, n_mantissa_in, n_exp_in, n_mantissa_out, n_exp_out):
+    """ Compiles an lookup table for a target_function function with
+    floating point inputs and floating point outputs.
+    """
+
+    target_dat, width, _ = get_arch_dat(arch_fn)
+    target_fn = eval(target_dat["fn"])
+    
+    n_input = 1 + n_mantissa_in + n_exp_in
+    lut_res = 2 ** n_input
+
+    # Determine all the possible input binary numbers
+    in_bin_str = [BinCompiler.compile_to_uint(x, n_input, 0) for x in range(0, lut_res)]
+
+    # Determine what value this binary actually represents under 
+    # floating point interpretation.
+    in_float_vals = [BinCompiler.decode_custom_float(x, n_mantissa_in, n_exp_in) for x in in_bin_str]
+
+    # Compute the exponential value for each value.
+    out_exp_vals = [target_fn(x) for x in in_float_vals]
+    out_bin = [BinCompiler.compile_to_float(x, n_mantissa_out, n_exp_out) for x in out_exp_vals] 
+
+    save_lut_file(out_bin, False, arch_fn, target_dat, 0, width, 0, 0)
+
+def save_lut_file(table, fixed_point, arch_fn, target_dat, shift_val=0, width=1, max_bin=0, min_bin=0):
+    # Saves the LUT for a given function.
+
+    # Write table to file.
+    if fixed_point: 
+        float_str = "" 
+    else: 
+        float_str = "_float"
+
+    file_name = "monarch/cache/{}_lut{}.mem"
+    with open(file_name.format(arch_fn, float_str), "w+") as file:
+        file.write("// Lookup table for {} function, {} entries. \n".format(arch_fn, target_dat["table_size"]))
+        for val in table:
+            file.write(str(val) + "\n")
+
+    # Write all parameters needed for this module to function properly to a pkg file.
+    with open("monarch/dbs/lut_pkg_template.sv") as file:
+        pkg_str = file.read()
+        pkg_str = pkg_str.replace("<table_size>", str(target_dat["table_size"]))
+        pkg_str = pkg_str.replace("<shift_val>", str(shift_val))
+        pkg_str = pkg_str.replace("<max_val>", "{}'b".format(width) + str(max_bin))
+        pkg_str = pkg_str.replace("<min_val>", "{}'b".format(width) + str(min_bin))
+    
+    with open("monarch/cache/lut_pkg.sv", "w+") as file:
+        file.write(pkg_str)
