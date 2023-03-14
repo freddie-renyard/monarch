@@ -104,10 +104,11 @@ def compile_float_lut(arch_fn, n_mantissa_in, n_exp_in, n_mantissa_out, n_exp_ou
     target_fn = eval(target_dat["fn"])
     
     n_input = 1 + n_mantissa_in + n_exp_in
-    lut_res = 2 ** n_input
+    lut_res = target_dat["table_size"]
+    shift_val = n_input - ceil(log2(target_dat["table_size"]))
 
     # Determine all the possible input binary numbers
-    in_bin_str = [BinCompiler.compile_to_uint(x, n_input, 0) for x in range(0, lut_res)]
+    in_bin_str = [BinCompiler.compile_to_uint(x << shift_val, n_input, 0) for x in range(0, lut_res)]
 
     # Determine what value this binary actually represents under 
     # floating point interpretation.
@@ -117,7 +118,7 @@ def compile_float_lut(arch_fn, n_mantissa_in, n_exp_in, n_mantissa_out, n_exp_ou
     out_exp_vals = [target_fn(x) for x in in_float_vals]
     out_bin = [BinCompiler.compile_to_float(x, n_mantissa_out, n_exp_out) for x in out_exp_vals] 
 
-    save_lut_file(out_bin, False, arch_fn, target_dat, 0, width, 0, 0)
+    save_lut_file(out_bin, False, arch_fn, target_dat, shift_val, width, 0, 0)
 
 def save_lut_file(table, fixed_point, arch_fn, target_dat, shift_val=0, width=1, max_bin=0, min_bin=0):
     # Saves the LUT for a given function.
