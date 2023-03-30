@@ -113,13 +113,13 @@ class BinCompiler:
     
     @classmethod
     def decode_custom_float(cls, bin_str, n_mantissa, n_exp):
-        
+
         sign_str = bin_str[0]
         exp_str = bin_str[1:1+n_exp]
         mantissa_str = "1" + bin_str[1+n_exp:]
 
         # Convert mantissa to decimal and convert to fixed representation
-        mantissa = int(mantissa_str, 2) / (2 ** (n_mantissa))
+        mantissa = int(mantissa_str, 2) / (2 ** (n_mantissa+1))
         
         # Convert exponent to decimal
         exponent = int(exp_str, 2) 

@@ -141,8 +141,8 @@ def compile_custom_exp_lut(n_man, n_exp):
     )
 
     # Compile a full float for every possible mantissa value from '0 to '1
-    man_bins = [BinCompiler.compile_to_uint(x, n_man+1, 0)[2:] for x in range(2 ** n_man)]
-    
+    man_bins = [BinCompiler.compile_to_uint(x, n_man, 0) for x in range(2 ** (n_man))]
+
     # Compute the value of the exponential function for each mantissa value, as if there is an
     man_vals = [BinCompiler.decode_custom_float(
         "0" + ("1" + "0" * (n_exp-1)) + x,
@@ -150,7 +150,8 @@ def compile_custom_exp_lut(n_man, n_exp):
         n_exp
     ) for x in man_bins]
 
-    # Get the value of the exponential function at every mantissa value
+    # Get the value of the exponential function at every mantissa value]
+    print(man_vals)
     man_exp_vals = [exp(x) for x in man_vals]
 
     # Decimate the table to bring the mantissa into representation and determine
@@ -167,63 +168,42 @@ def compile_custom_exp_lut(n_man, n_exp):
         raise Exception("The mantissa depth ({}) must be larger or equal to table depth ({})".format(n_man, n_table))
 
     window = 2 ** (shift_size)
-    
-    reduc_exp_vals = [np.mean(man_exp_vals[x*window:(x+1)*window])for x in range(table_size)]
+
+    reduc_exp_vals = [np.mean(man_exp_vals[x*window:(x+1)*window]) for x in range(table_size)]
     
     # Compile the decimated exponent output values to floating point
-    exp_bins_full = [BinCompiler.compile_to_float(x, n_man, n_exp) for x in reduc_exp_vals]
-    
-    # Strip off the exponent and sign, and append to correction number to determine final values.
-    man_bins_final = []
-    corr_size = 2
-    for bin in exp_bins_full:
-
-        # Compute the exponent correction needed to normalise the value
-        corr = int(bin[1:n_exp+1], 2) - (2 ** (n_exp-1))
-        corr_bin = BinCompiler.compile_to_uint(corr, corr_size, 0)
-        
-        # Strip off exponent and sign and concatenate bits.
-        man_bins_final.append(
-            corr_bin + bin[n_exp+1:]
-        )
+    man_bins_final = [BinCompiler.compile_to_float(x, n_man, n_exp) for x in reduc_exp_vals]
 
     # Determine every possible exponent binary, inclusive of zero.
-    exp_bins = [BinCompiler.compile_to_uint(x, n_exp, 0) for x in range(2 ** n_exp)]
+    exp_bins = ["0" * n_exp] + [BinCompiler.compile_to_uint(x+1, n_exp, 0) for x in range(1, 2 ** n_exp - 1)] + ["1" * n_exp]
 
     # Concatenate the signs onto the exponents 
     exp_and_sign_bins = [*["0" + bin for bin in exp_bins], *["1" + bin for bin in exp_bins]]
 
-    # For each exponent, determine if the e^x output values are within it's limits.
     exp_bins_final = []
     for exp_bin in exp_and_sign_bins:
         min_exp_val = BinCompiler.decode_custom_float(
             exp_bin + "0" * n_man, n_man, n_exp
         )
-        max_exp_val = BinCompiler.decode_custom_float(
-            exp_bin + "1" * n_man, n_man, n_exp
-        )
- 
-        try:
-            min_e_val = exp(min_exp_val)
-        except:
-            # Make the output value the maximum value that the datatype can represent
-            # if the function overflows.
-            min_e_val = max_val
         
-        # Compute the exponent map, starting at the minumum value.
-        compiled_exp = BinCompiler.compile_to_float(min_e_val, n_man, n_exp)
-        exp_bins_final.append(compiled_exp[1:n_exp+1])
+        e_val = (np.exp(1.0) ** 2) ** min_exp_val
+        
+        if e_val == np.inf:
+            e_val = max_val
+
+        # Compile the exponent portion of the exponential function
+        compiled_exp = BinCompiler.compile_to_float(e_val, n_man, n_exp)
+        exp_bins_final.append(compiled_exp)
     
     save_float_lut_file(
         "e",
         man_bins_final,
         exp_bins_final,
         len(man_bins_final),
-        len(exp_bins_final),
-        corr_size
+        len(exp_bins_final)
     )
 
-def save_float_lut_file(arch_fn, man_table, exp_table, man_tab_size, exp_tab_size, corr_size):
+def save_float_lut_file(arch_fn, man_table, exp_table, man_tab_size, exp_tab_size):
 
     file_name = "monarch/cache/{}_lut_float_{}.mem"
     with open(file_name.format(arch_fn, "man"), "w+") as file:
@@ -242,7 +222,6 @@ def save_float_lut_file(arch_fn, man_table, exp_table, man_tab_size, exp_tab_siz
         pkg_str = file.read()
         pkg_str = pkg_str.replace("<man_table_size>", str(man_tab_size))
         pkg_str = pkg_str.replace("<exp_table_size>", str(exp_tab_size))
-        pkg_str = pkg_str.replace("<corr_size>", str(corr_size))
     
     with open("monarch/cache/lut_float_pkg.sv", "w+") as file:
         file.write(pkg_str)
