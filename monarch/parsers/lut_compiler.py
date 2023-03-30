@@ -211,9 +211,8 @@ def compile_custom_exp_lut(n_man, n_exp):
             min_e_val = max_val
         
         # Compute the exponent map, starting at the minumum value.
-        compiled_exp = BinCompiler.compile_to_float(min_e_val, n_man, n_exp)[:n_exp+1]
-
-        exp_bins_final.append(compiled_exp)
+        compiled_exp = BinCompiler.compile_to_float(min_e_val, n_man, n_exp)
+        exp_bins_final.append(compiled_exp[1:n_exp+1])
     
     save_float_lut_file(
         "e",
