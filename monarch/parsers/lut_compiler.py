@@ -245,7 +245,7 @@ def save_float_lut_file(arch_fn, man_table, exp_table, man_tab_size, exp_tab_siz
         pkg_str = pkg_str.replace("<exp_table_size>", str(exp_tab_size))
         pkg_str = pkg_str.replace("<corr_size>", str(corr_size))
     
-    with open("monarch/cache/lut_pkg.sv", "w+") as file:
+    with open("monarch/cache/lut_float_pkg.sv", "w+") as file:
         file.write(pkg_str)
 
 def save_lut_file(table, fixed_point, arch_fn, target_dat, shift_val=0, width=1, max_bin=0, min_bin=0):
