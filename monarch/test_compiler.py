@@ -148,7 +148,21 @@ def cicr():
         "y": 16
     }
 
-    return test_equ, args, init_state
+    instances = 1
+    sys_data = {
+        "v_m_2": 100.0,
+        "v_m_3": 700.0,
+        "k_2": 1.0,
+        "k_r": 15.0,
+        "k_a": 2.5,
+        "k_f": 0,
+        "k": 8.0,
+        "b": 1.0,
+        "x": 16,
+        "y": 16
+    }
+
+    return test_equ, args, init_state, sys_data, instances
 
 def duplicate_test():
 
@@ -170,7 +184,7 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
-    test_equ, args, init_state, sys_data, instances = hodgkin_huxley()
+    test_equ, args, init_state, sys_data, instances = cicr()
 
     dt = 1.0/128.0
     compiled_cfg = eq_to_cfg(test_equ)
