@@ -2,6 +2,7 @@ from parsers.hardware_objs import HardwareUnit, CFGU, ManycoreUnit, Tile
 from parsers.equation_parse import eq_to_cfg
 from parsers.cfg_compiler import cfg_to_pipeline
 from simulators.simulators import pipeline_eumulator, simulate_system
+from simulators.asip_emulator import emulate_core
 import numpy as np
 from copy import copy
 
@@ -198,6 +199,8 @@ if __name__ == "__main__":
         sys_data,
         init_state.keys()
     )
+
+    emulate_core()
 
     simulate_system(
         test_equ, sys_data, sim_time=20, dt=1.0/128.0

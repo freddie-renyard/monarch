@@ -449,7 +449,7 @@ class ManycoreUnit:
             # Append the instructions to the core instruction threads
             for i, new_instr in enumerate(new_instrs):
                 instrs[i].append(new_instr)
-
+            
             # Append the instructions to the main assembly thread, which
             # will be compiled to machine code.
             for i, new_instr in enumerate(new_instrs):

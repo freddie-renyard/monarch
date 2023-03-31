@@ -152,7 +152,6 @@ def compile_custom_exp_lut(n_man, n_exp):
 
     # Get the value of the exponential function at every mantissa value]
     man_exp_vals = [exp(x) for x in man_vals]
-    print(man_exp_vals)
     
     # Decimate the table to bring the mantissa into representation and determine
     # the shift value
