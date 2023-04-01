@@ -1,3 +1,4 @@
+from distutils.log import debug
 from parsers.float_compiler import BinCompiler
 import numpy as np
 from parsers.report_utils import plot_mat
@@ -340,8 +341,10 @@ class ManycoreUnit:
 
         self.clear_cache()
 
-        asm = self.compile_instrs(verbose=True)
+        asm, debug_asm = self.compile_instrs(verbose=True)
 
+        disp_exec_thread(debug_asm)
+        
         self.report_exec_time(asm)
         self.asm_to_machcode(asm, verbose=True)
 
@@ -359,6 +362,7 @@ class ManycoreUnit:
 
         instrs = [[] for _ in range(self.cores)]
         asm    = [[] for _ in range(self.cores)]
+        debug_asm = [[] for _ in range(self.cores)]
 
         # Determine the output instructions.
         terminal_instrs, terminal_vars = find_terminal_instrs(
@@ -449,11 +453,12 @@ class ManycoreUnit:
             # Append the instructions to the core instruction threads
             for i, new_instr in enumerate(new_instrs):
                 instrs[i].append(new_instr)
-            
+
             # Append the instructions to the main assembly thread, which
             # will be compiled to machine code.
             for i, new_instr in enumerate(new_instrs):
                 asm_instr = instr_to_asm(new_instr, reg_map, self.const_names)
+                debug_asm[i].append(new_instr)
                 asm[i].append(asm_instr)
 
         if verbose:
@@ -461,8 +466,8 @@ class ManycoreUnit:
                 print("// MONARCH - CORE {} ASSEMBLY".format(i))
                 disp_exec_thread([instr_asm])
                 print()
-
-        return asm
+        
+        return asm, debug_asm
 
     def asm_to_machcode(self, asm, verbose=False):
         # Compile threads of assembly into machine code, as per the manycore MONArch ISA.

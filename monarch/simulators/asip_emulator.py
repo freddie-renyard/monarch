@@ -1,6 +1,7 @@
 import os
 import json
 from parsers.float_compiler import BinCompiler
+import numpy as np 
 
 def parse_machcode(file_path, isa):
     # Parse the input machine code file
@@ -73,20 +74,96 @@ def parse_regs(regrefs, memfile, n_man, n_exp, reg_num):
 
     return reg_map
 
-def execute_masm(masm, reg_table, const_table):
+def execute_masm(masm, reg_table, const_table, arch_ops):
 
     clk = 0
     run = True
     pc = 0
 
-    delay_res = []
+    dly_res = []
+    dly_ctr = 0
     while run:
 
-        instr = masm[pc]
+        # Stall execution if the nop counter is high
+        if dly_ctr == 0:
+
+            instr = masm[pc]
+            
+            # Decode the instruction
+            opcode_split = instr["op"].split("_")
+
+            # Decode sources
+            opcode = opcode_split[0]
+            if len(opcode_split) == 1:
+                # Data source is register
+                s1, s2 = reg_table[instr['s1']], reg_table[instr['s2']]
+            else:
+                if opcode_split[1] == 'cl':
+                    s1, s2 = const_table[instr['s1']], reg_table[instr['s2']]
+                elif opcode_split[1] == 'cm':
+                    s1, s2 = reg_table[instr['s1']], const_table[instr['s2']]
+                else:
+                    raise Exception("MONARCH - Emulator: Unrecognised opcode '{}'".format(opcode_split[1]))
+            
+            # Perform computation specified by the opcode
+            if opcode == 'nop':
+                dly_ctr = instr['s2']
+                pc += 1
+            elif opcode == 'halt':
+                run = False
+            else:
+                dest_reg = instr['dest']
+                if opcode == 'mult':
+                    res = s1 * s2
+                elif opcode == 'add':
+                    res = s1 + s2
+                elif opcode == 'sub':
+                    res = s1 - s2
+                elif opcode == 'div':
+                    res = s1 / s2
+                elif opcode == 'lut':
+                    print("WARNING: Only exponential function is implemented")
+                    res = np.exp(s2)
+                else:
+                    raise Exception("MONARCH - Emulator: Unrecognised opcode {} ".format(opcode))
+            
+                # Lookup the delay for the operation from arch_dbs
+                dly = arch_ops[opcode]['delay']
+                
+                # Add result to delay pipeline
+                dly_res.append({
+                    "res": res,
+                    "dest": dest_reg,
+                    "dly": dly
+                })
+
+                pc += 1
+        else:
+            dly_ctr -= 1
         
-        # Decode the instruction
+        # Extract valid results from delay pipeline and remove them
+        new_res = []
+        for dlyed_res in dly_res:
+            if dlyed_res['dly'] <= 0:
+                reg_table[dlyed_res["dest"]] = dlyed_res["res"]
+            else: 
+                # Decrement delay counters
+                dlyed_res['dly'] -= 1
+                new_res.append(dlyed_res)
         
+        dly_res = new_res
+
+        if opcode == 'nop':
+            print("CYCLE {}: Instr {}".format(clk, opcode))
+        else:   
+            print("CYCLE {}: Instr {} d1 {} d2 {} res {}".format(clk, opcode, s1, s2, res))
         clk += 1
+
+    print("TERMINAL REGISTER MAP:")
+    for i, dat in enumerate(reg_table):
+        print("r{}  {}".format(i, dat))
+
+    exit()
 
 def emulate_core():
     # Emulates a single core of monarch assembly code.
@@ -125,4 +202,4 @@ def emulate_core():
     )
     
     # Execute code.
-    execute_masm(masm, reg_table, const_table)
+    execute_masm(masm, reg_table, const_table, arch_dbs['opcodes'])
