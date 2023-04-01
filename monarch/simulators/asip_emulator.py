@@ -80,6 +80,9 @@ def execute_masm(masm, reg_table, const_table, arch_ops):
     run = True
     pc = 0
 
+    # Construct a table to check for if a result has been utilised
+    utilised_table = [(x is None) for x in reg_table]
+
     dly_res = []
     dly_ctr = 0
     while run:
@@ -97,11 +100,18 @@ def execute_masm(masm, reg_table, const_table, arch_ops):
             if len(opcode_split) == 1:
                 # Data source is register
                 s1, s2 = reg_table[instr['s1']], reg_table[instr['s2']]
+                utilised_table[instr['s1']] = True
+                utilised_table[instr['s2']] = True
+                active_regs = [instr['s1'], instr['s2']]
             else:
                 if opcode_split[1] == 'cl':
                     s1, s2 = const_table[instr['s1']], reg_table[instr['s2']]
+                    utilised_table[instr['s2']] = True
+                    active_regs = [instr['s2']]
                 elif opcode_split[1] == 'cm':
                     s1, s2 = reg_table[instr['s1']], const_table[instr['s2']]
+                    utilised_table[instr['s1']] = True
+                    active_regs = [instr['s1']]
                 else:
                     raise Exception("MONARCH - Emulator: Unrecognised opcode '{}'".format(opcode_split[1]))
             
@@ -146,6 +156,14 @@ def execute_masm(masm, reg_table, const_table, arch_ops):
         for dlyed_res in dly_res:
             if dlyed_res['dly'] <= 0:
                 reg_table[dlyed_res["dest"]] = dlyed_res["res"]
+
+                if utilised_table[dlyed_res["dest"]] == False:
+                    print("WARNING: Result at r{} is unused and being overwritten".format(dlyed_res["dest"]))
+
+                # Detect potential race conditions
+                if opcode != 'nop' and opcode != 'halt':
+                    if dlyed_res["dest"] in active_regs:
+                        print("WARNING: Potential race condition: r{}".format(dlyed_res["dest"]))
             else: 
                 # Decrement delay counters
                 dlyed_res['dly'] -= 1
@@ -163,7 +181,6 @@ def execute_masm(masm, reg_table, const_table, arch_ops):
     for i, dat in enumerate(reg_table):
         print("r{}  {}".format(i, dat))
 
-    exit()
 
 def emulate_core():
     # Emulates a single core of monarch assembly code.
