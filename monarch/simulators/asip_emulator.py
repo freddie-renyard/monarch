@@ -83,6 +83,14 @@ def execute_masm(masm, reg_table, const_table, arch_ops):
     # Construct a table to check for if a result has been utilised
     utilised_table = [(x is None) for x in reg_table]
 
+    print("START REGISTER MAP:")
+    for i, dat in enumerate(reg_table):
+        print("r{}  {}".format(i, dat))
+
+    print("START CONSTANT MAP:")
+    for i, dat in enumerate(const_table):
+        print("c{}  {}".format(i, dat))
+
     dly_res = []
     dly_ctr = 0
     while run:
@@ -174,7 +182,7 @@ def execute_masm(masm, reg_table, const_table, arch_ops):
         if opcode == 'nop':
             print("CYCLE {}: Instr {}".format(clk, opcode))
         else:   
-            print("CYCLE {}: Instr {} d1 {} d2 {} res {}".format(clk, opcode, s1, s2, res))
+            print("CYCLE {}: Instr {} d1 {} d2 {} res {} dest {}".format(clk, opcode, s1, s2, res, dest_reg))
         clk += 1
 
     print("TERMINAL REGISTER MAP:")
