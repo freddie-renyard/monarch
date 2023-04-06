@@ -149,7 +149,7 @@ def cicr():
         "y": 16
     }
 
-    instances = 1
+    instances = 10
     sys_data = {
         "v_m_2": 100.0,
         "v_m_3": 700.0,
@@ -159,8 +159,8 @@ def cicr():
         "k_f": 0,
         "k": 8.0,
         "b": 1.0,
-        "x": 16,
-        "y": 16
+        "x": np.random.uniform(10.0, 20.0, instances),
+        "y": np.random.uniform(10.0, 20.0, instances)
     }
 
     return test_equ, args, init_state, sys_data, instances
