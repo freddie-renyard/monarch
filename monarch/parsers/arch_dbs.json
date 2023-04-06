@@ -51,7 +51,7 @@
         },
         "div": {
             "block_name": "DIVIDE",
-            "delay": 9,
+            "delay": 20,
             "op_index": 4,
             "input_num": 2,
             "precedence": true,

@@ -158,8 +158,8 @@ def cicr():
         "k_f": 0,
         "k": 8.0,
         "b": 1.0,
-        "x": 16.0,
-        "y": 16.0
+        "x": np.random.uniform(10.0, 20.0, instances),
+        "y": np.random.uniform(10.0, 20.0, instances)
     }
 
     return test_equ, args, init_state, sys_data, instances
