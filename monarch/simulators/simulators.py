@@ -51,15 +51,18 @@ def parse_eqs(eq_str):
     return sys_dot, ret_vars, deriv_strs
 
 def extract_arg_vals(arg_dict, arg_symbols):
+
     arg_vals = []
     for symbol in arg_symbols:
         try:
-            arg_vals.append(arg_dict[str(symbol)])
+            if len(arg_dict[str(symbol)]):
+                arg_vals.append(arg_dict[str(symbol)][0])
         except:
             if str(symbol) == "e":
                 arg_vals.append(math.e)
             else:
-                raise Exception("System symbol {} not recognised".format(symbol))
+                arg_vals.append(arg_dict[str(symbol)])
+                # raise Exception("System symbol {} not recognised".format(symbol))
 
     return arg_vals
 

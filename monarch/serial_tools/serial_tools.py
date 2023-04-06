@@ -10,7 +10,7 @@ import numpy as np
 
 class FPGAPort:
 
-    def __init__(self):
+    def __init__(self, sim_dims, instances, timesteps):
         
         self.port_name = "/dev/cu.usbserial-A904DPPI"
         self.timeout = 10
@@ -29,15 +29,19 @@ class FPGAPort:
         # Acquire a connection to the FPGA
         self.open_uart()
 
-        sim_dims = 2
-        timesteps = 500
+        steps_per_package = 20
+        packages = timesteps // steps_per_package
 
         out_data = None
-        for i in range(10):
-            self.run_timesteps(timesteps)
+        for i in range(packages):
+            # Send the command to run the specified number of timesteps to the device
+            self.run_timesteps(steps_per_package)
+
+            # Receive the restructured data from the device
             data = self.receive_data(
                 sim_dims, 
-                timesteps,
+                instances,
+                steps_per_package,
                 1 + self.n_exp + self.n_man
             )
 
@@ -48,8 +52,9 @@ class FPGAPort:
             
             print(np.shape(out_data))
 
-        plt.plot(out_data)
-        plt.show()
+        for i in range(instances):
+            plt.plot(out_data[:, i, :])
+            plt.show()
         
     def open_uart(self):
         # Open the serial port 
@@ -84,20 +89,19 @@ class FPGAPort:
         bytes_dts = timesteps.to_bytes(2, "big")
         self.port.write(bytes_dts + dt_code)
 
-    def receive_data(self, sim_dims, timesteps, n_data):
+    def receive_data(self, sim_dims, instances, timesteps, n_data):
         
         # Compute the number of bytes per data word
         bytes_per_word = ceil(n_data / 8)
-        bytes_per_packet = sim_dims * timesteps * bytes_per_word
+        bytes_per_packet = instances * sim_dims * timesteps * bytes_per_word
         bytes_lst = self.reader.readline(bytes_per_packet)
 
         # Convert byte list to float list
         grouped_bytes = [bytes_lst[x:x+bytes_per_word] for x in range(0, bytes_per_packet, bytes_per_word)]
         grouped_binstr = [BitArray(bytes=x).bin for x in grouped_bytes]
-        debug = [BitArray(bytes=x).hex for x in grouped_bytes]
 
         grouped_floats = [BinCompiler.decode_custom_float(x, self.n_man, self.n_exp) for x in grouped_binstr]
-        final_dat = [grouped_floats[x:x+sim_dims] for x in range(0, sim_dims * timesteps, sim_dims)]
+        final_dat = np.reshape(grouped_floats, (timesteps, instances, sim_dims))
         
         return final_dat
     

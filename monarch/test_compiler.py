@@ -4,7 +4,6 @@ from parsers.cfg_compiler import cfg_to_pipeline
 from simulators.simulators import pipeline_eumulator, simulate_system
 from simulators.asip_emulator import emulate_core
 import numpy as np
-from copy import copy
 
 def oregonator_model():
 
@@ -159,8 +158,8 @@ def cicr():
         "k_f": 0,
         "k": 8.0,
         "b": 1.0,
-        "x": np.random.uniform(10.0, 20.0, instances),
-        "y": np.random.uniform(10.0, 20.0, instances)
+        "x": 16.0,
+        "y": 16.0
     }
 
     return test_equ, args, init_state, sys_data, instances
@@ -185,6 +184,7 @@ def duplicate_test():
 
 if __name__ == "__main__":
 
+    np.random.seed(0)
     test_equ, args, init_state, sys_data, instances = cicr()
 
     dt = 1.0/128.0
